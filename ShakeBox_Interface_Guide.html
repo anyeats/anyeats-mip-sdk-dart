@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>ShakeBox Interface Guide - Flutter SDK</title>
+<style>
+  @page {
+    size: A4;
+    margin: 20mm 18mm 20mm 18mm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+    font-size: 10pt;
+    line-height: 1.6;
+    color: #1a1a1a;
+    padding: 0;
+  }
+
+  /* Cover page */
+  .cover {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    text-align: center;
+    page-break-after: always;
+  }
+  .cover-logo {
+    font-size: 48pt;
+    font-weight: 800;
+    color: #2563eb;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+  }
+  .cover-sub {
+    font-size: 12pt;
+    color: #64748b;
+    margin-bottom: 60px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .cover-title {
+    font-size: 28pt;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 12px;
+  }
+  .cover-subtitle {
+    font-size: 14pt;
+    color: #475569;
+    margin-bottom: 80px;
+  }
+  .cover-meta {
+    font-size: 10pt;
+    color: #94a3b8;
+    line-height: 2;
+  }
+  .cover-meta strong { color: #64748b; }
+
+  /* TOC */
+  .toc {
+    page-break-after: always;
+    padding-top: 40px;
+  }
+  .toc h2 {
+    font-size: 18pt;
+    color: #0f172a;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 8px;
+    margin-bottom: 24px;
+  }
+  .toc-list { list-style: none; }
+  .toc-list li {
+    padding: 6px 0;
+    border-bottom: 1px dotted #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+  }
+  .toc-list li a {
+    text-decoration: none;
+    color: #1e40af;
+    font-weight: 500;
+  }
+  .toc-list .toc-sub {
+    padding-left: 24px;
+    font-weight: 400;
+  }
+  .toc-list .toc-sub a { color: #475569; }
+
+  /* Sections */
+  h1 {
+    font-size: 20pt;
+    color: #0f172a;
+    border-bottom: 3px solid #2563eb;
+    padding-bottom: 6px;
+    margin: 36px 0 16px 0;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 14pt;
+    color: #1e40af;
+    margin: 24px 0 10px 0;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11pt;
+    color: #334155;
+    margin: 16px 0 8px 0;
+    page-break-after: avoid;
+  }
+  p { margin: 6px 0; }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 9pt;
+    page-break-inside: auto;
+  }
+  thead { background: #1e40af; color: #fff; }
+  th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 9pt;
+  }
+  td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    vertical-align: top;
+  }
+  tr:nth-child(even) { background: #f8fafc; }
+  .group-header td {
+    background: #eef2ff;
+    font-weight: 700;
+    color: #3730a3;
+    padding: 8px 10px;
+    border-bottom: 2px solid #c7d2fe;
+  }
+
+  /* Code */
+  code {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 8.5pt;
+    background: #f1f5f9;
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: #be185d;
+  }
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 8.5pt;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 8px 0 16px 0;
+    page-break-inside: avoid;
+  }
+  pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+  }
+  .kw { color: #c084fc; }
+  .fn { color: #67e8f9; }
+  .str { color: #86efac; }
+  .cmt { color: #64748b; }
+  .num { color: #fbbf24; }
+  .type { color: #93c5fd; }
+
+  /* Info boxes */
+  .info-box {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9pt;
+  }
+  .warn-box {
+    background: #fefce8;
+    border-left: 4px solid #eab308;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9pt;
+  }
+
+  /* Spec table */
+  .spec-table { width: auto; }
+  .spec-table th { background: #f1f5f9; color: #334155; min-width: 120px; }
+  .spec-table td { min-width: 200px; }
+
+  /* Architecture */
+  .arch-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'SF Mono', monospace;
+    font-size: 9pt;
+    line-height: 1.7;
+    margin: 10px 0;
+    white-space: pre;
+  }
+
+  /* Flow table */
+  .flow-table code { font-size: 8pt; }
+
+  /* Footer */
+  .footer {
+    margin-top: 40px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+    font-size: 8pt;
+    color: #94a3b8;
+    text-align: center;
+  }
+
+  /* Page breaks */
+  .page-break { page-break-before: always; }
+
+  /* List */
+  ul, ol { margin: 6px 0 6px 20px; }
+  li { margin: 3px 0; }
+</style>
+</head>
+<body>
+
+<!-- ==================== COVER ==================== -->
+<div class="cover">
+  <div class="cover-logo">ShakeBox</div>
+  <div class="cover-sub">GS805 Coffee Machine</div>
+  <div class="cover-title">Interface Guide</div>
+  <div class="cover-subtitle">Flutter SDK (Dart)</div>
+  <div class="cover-meta">
+    <strong>Version</strong> 1.0.0<br>
+    <strong>Date</strong> 2026-03-25<br>
+    <strong>Author</strong> AnyEats Co., Ltd.<br>
+    <strong>Classification</strong> Confidential
+  </div>
+</div>
+
+<!-- ==================== TOC ==================== -->
+<div class="toc">
+  <h2>목차</h2>
+  <ol class="toc-list">
+    <li><a href="#sec1">1. 개요</a></li>
+    <li class="toc-sub"><a href="#sec1-1">1.1 통신 사양</a></li>
+    <li class="toc-sub"><a href="#sec1-2">1.2 지원 모델</a></li>
+    <li class="toc-sub"><a href="#sec1-3">1.3 지원 플랫폼</a></li>
+    <li class="toc-sub"><a href="#sec1-4">1.4 아키텍처</a></li>
+    <li><a href="#sec2">2. 설치 및 설정</a></li>
+    <li class="toc-sub"><a href="#sec2-1">2.1 패키지 추가</a></li>
+    <li class="toc-sub"><a href="#sec2-2">2.2 Android 설정</a></li>
+    <li><a href="#sec3">3. 빠른 시작</a></li>
+    <li><a href="#sec4">4. API 레퍼런스</a></li>
+    <li class="toc-sub"><a href="#sec4-1">4.1 연결 관리</a></li>
+    <li class="toc-sub"><a href="#sec4-2">4.2 음료 제조 및 제어</a></li>
+    <li class="toc-sub"><a href="#sec4-3">4.3 정보 조회</a></li>
+    <li class="toc-sub"><a href="#sec4-4">4.4 유지보수</a></li>
+    <li class="toc-sub"><a href="#sec4-5">4.5 Series 3/R 확장 명령</a></li>
+    <li class="toc-sub"><a href="#sec4-6">4.6 커스텀 레시피 (R시리즈)</a></li>
+    <li class="toc-sub"><a href="#sec4-7">4.7 Event Streams</a></li>
+    <li class="toc-sub"><a href="#sec4-8">4.8 Properties</a></li>
+    <li class="toc-sub"><a href="#sec4-9">4.9 주요 클래스</a></li>
+    <li><a href="#sec5">5. 사용 예제</a></li>
+    <li class="toc-sub"><a href="#sec5-1">5.1 연결 관리</a></li>
+    <li class="toc-sub"><a href="#sec5-2">5.2 음료 제조</a></li>
+    <li class="toc-sub"><a href="#sec5-3">5.3 온도 설정</a></li>
+    <li class="toc-sub"><a href="#sec5-4">5.4 상태 및 에러 조회</a></li>
+    <li class="toc-sub"><a href="#sec5-5">5.5 커스텀 레시피 (R시리즈)</a></li>
+    <li class="toc-sub"><a href="#sec5-6">5.6 이벤트 스트리밍</a></li>
+    <li class="toc-sub"><a href="#sec5-7">5.7 자동 재연결</a></li>
+    <li><a href="#sec6">6. 기술 사양</a></li>
+    <li><a href="#sec7">7. 문서 이력</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1. 개요 ==================== -->
+<h1 id="sec1">1. 개요</h1>
+<p>
+  본 문서는 ShakeBox(GS805) 커피머신과 Flutter 앱 간 시리얼 통신을 위한
+  <strong>GS805Serial Flutter SDK</strong>의 인터페이스 가이드입니다.
+  SDK는 Dart Stream/Future 기반으로 설계되어 비동기 통신과 실시간 이벤트 스트리밍을 지원합니다.
+</p>
+
+<h2 id="sec1-1">1.1 통신 사양</h2>
+<table class="spec-table">
+  <tr><th>항목</th><td>사양</td></tr>
+  <tr><th>통신 방식</th><td>UART RS232 (USB Serial)</td></tr>
+  <tr><th>전송 속도</th><td>9600 bps</td></tr>
+  <tr><th>데이터 형식</th><td>8N1 (8 data bits, No parity, 1 stop bit)</td></tr>
+  <tr><th>바이트 순서</th><td>Big Endian</td></tr>
+  <tr><th>응답 타임아웃</th><td>100ms (재시도 메커니즘 내장)</td></tr>
+</table>
+
+<h2 id="sec1-2">1.2 지원 모델</h2>
+<table>
+  <thead><tr><th>분류</th><th>시리즈</th><th>제어 시스템</th><th>해당 모델</th></tr></thead>
+  <tbody>
+    <tr><td>Series 2</td><td>2nd</td><td>현마 (단일)</td><td>GS305, GS505, JK81, JK90, JK91</td></tr>
+    <tr><td><strong>Series 3</strong></td><td>3rd</td><td><strong>단일 스레드</strong></td><td><strong>GS505, GS805</strong>, JK81, JK82, JK86</td></tr>
+    <tr><td>R Series</td><td>3rd</td><td>멀티 스레드</td><td>GS801, RD-JK86, JK88</td></tr>
+  </tbody>
+</table>
+<div class="info-box">
+  <strong>참고:</strong> ShakeBox(GS805)는 Series 3 (단일 스레드)입니다. R시리즈 전용 명령(레시피, 채널 실행)은 R시리즈 모델에서만 사용 가능합니다.
+</div>
+
+<h2 id="sec1-3">1.3 지원 플랫폼</h2>
+<table class="spec-table">
+  <tr><th>플랫폼</th><td>지원 상태</td></tr>
+  <tr><th>Android</th><td>지원 (API 19+, Android 4.4+)</td></tr>
+  <tr><th>iOS</th><td>제한적 (USB Serial 제약)</td></tr>
+</table>
+
+<h2 id="sec1-4">1.4 아키텍처</h2>
+<div class="arch-box">┌─────────────────────────────────┐
+│      API Layer (GS805Serial)    │  ← 고수준 사용자 API
+├─────────────────────────────────┤
+│   Serial Layer (SerialManager)  │  ← 연결 및 메시지 파싱
+├─────────────────────────────────┤
+│  Protocol Layer (GS805Protocol) │  ← 메시지 인코딩/디코딩
+└─────────────────────────────────┘</div>
+
+<!-- ==================== 2. 설치 ==================== -->
+<h1 id="sec2" class="page-break">2. 설치 및 설정</h1>
+
+<h2 id="sec2-1">2.1 패키지 추가</h2>
+<h3>Git 의존성 (권장)</h3>
+<pre><code><span class="cmt"># pubspec.yaml</span>
+<span class="kw">dependencies</span>:
+  <span class="fn">gs805serial</span>:
+    <span class="kw">git</span>:
+      <span class="kw">url</span>: <span class="str">https://github.com/anyeats/anyeats-mip-sdk-dart.git</span>
+      <span class="kw">ref</span>: <span class="str">1.0.0</span></code></pre>
+
+<pre><code><span class="cmt"># 패키지 설치</span>
+$ flutter pub get</code></pre>
+
+<h2 id="sec2-2">2.2 Android 설정</h2>
+<p><code>AndroidManifest.xml</code>에 USB 권한을 추가합니다.</p>
+<pre><code><span class="cmt">&lt;!-- AndroidManifest.xml --&gt;</span>
+&lt;<span class="kw">manifest</span>&gt;
+  &lt;<span class="kw">uses-feature</span> <span class="fn">android:name</span>=<span class="str">"android.hardware.usb.host"</span> /&gt;
+
+  &lt;<span class="kw">application</span>&gt;
+    &lt;<span class="kw">intent-filter</span>&gt;
+      &lt;<span class="kw">action</span> <span class="fn">android:name</span>=<span class="str">"android.hardware.usb.action.USB_DEVICE_ATTACHED"</span> /&gt;
+    &lt;/<span class="kw">intent-filter</span>&gt;
+
+    &lt;<span class="kw">meta-data</span>
+      <span class="fn">android:name</span>=<span class="str">"android.hardware.usb.action.USB_DEVICE_ATTACHED"</span>
+      <span class="fn">android:resource</span>=<span class="str">"@xml/device_filter"</span> /&gt;
+  &lt;/<span class="kw">application</span>&gt;
+&lt;/<span class="kw">manifest</span>&gt;</code></pre>
+
+<p><code>android/app/src/main/res/xml/device_filter.xml</code> 생성:</p>
+<pre><code>&lt;?<span class="kw">xml</span> <span class="fn">version</span>=<span class="str">"1.0"</span> <span class="fn">encoding</span>=<span class="str">"utf-8"</span>?&gt;
+&lt;<span class="kw">resources</span>&gt;
+  &lt;<span class="kw">usb-device</span> <span class="fn">vendor-id</span>=<span class="str">"1234"</span> <span class="fn">product-id</span>=<span class="str">"5678"</span> /&gt;
+&lt;/<span class="kw">resources</span>&gt;</code></pre>
+
+<h2>기술 스택</h2>
+<table class="spec-table">
+  <tr><th>항목</th><td>사양</td></tr>
+  <tr><th>언어</th><td>Dart</td></tr>
+  <tr><th>비동기</th><td>Stream / Future</td></tr>
+  <tr><th>USB 시리얼</th><td>usb_serial 패키지</td></tr>
+  <tr><th>Flutter SDK</th><td>&gt;= 3.0.0</td></tr>
+  <tr><th>Dart SDK</th><td>&gt;= 3.0.0</td></tr>
+  <tr><th>최소 Android</th><td>API 19 (Android 4.4)</td></tr>
+</table>
+
+<!-- ==================== 3. 빠른 시작 ==================== -->
+<h1 id="sec3" class="page-break">3. 빠른 시작</h1>
+<pre><code><span class="kw">import</span> <span class="str">'package:gs805serial/gs805serial.dart'</span>;
+
+<span class="kw">void</span> <span class="fn">main</span>() <span class="kw">async</span> {
+  <span class="cmt">// 1. 인스턴스 생성 (자동 재연결 포함)</span>
+  <span class="kw">final</span> gs805 = <span class="type">GS805Serial</span>(
+    reconnectConfig: <span class="type">ReconnectConfig</span>.exponentialBackoff,
+  );
+
+  <span class="cmt">// 2. 디바이스 검색 및 연결</span>
+  <span class="kw">final</span> devices = <span class="kw">await</span> gs805.<span class="fn">listDevices</span>();
+  <span class="kw">await</span> gs805.<span class="fn">connect</span>(devices.first);
+
+  <span class="cmt">// 3. 상태 조회</span>
+  <span class="kw">final</span> status = <span class="kw">await</span> gs805.<span class="fn">getMachineStatus</span>();
+  <span class="fn">print</span>(<span class="str">'Status: ${status.description}'</span>);
+
+  <span class="cmt">// 4. 음료 제조</span>
+  <span class="kw">await</span> gs805.<span class="fn">makeDrink</span>(<span class="type">DrinkNumber</span>.hotDrink1);
+
+  <span class="cmt">// 5. 이벤트 관찰 (Stream)</span>
+  gs805.eventStream.<span class="fn">listen</span>((event) {
+    <span class="fn">print</span>(<span class="str">'Machine event: ${event.type.description}'</span>);
+  });
+
+  <span class="cmt">// 6. 연결 해제</span>
+  <span class="kw">await</span> gs805.<span class="fn">disconnect</span>();
+  <span class="kw">await</span> gs805.<span class="fn">dispose</span>();
+}</code></pre>
+
+<!-- ==================== 4. API Reference ==================== -->
+<h1 id="sec4" class="page-break">4. API 레퍼런스</h1>
+
+<h2 id="sec4-1">4.1 연결 관리</h2>
+<table>
+  <thead><tr><th style="width:50%">메서드</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>listDevices()</code> &rarr; <code>Future&lt;List&lt;SerialDevice&gt;&gt;</code></td><td>USB 시리얼 디바이스 목록 반환</td></tr>
+    <tr><td><code>connect(SerialDevice device)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>지정 디바이스에 연결</td></tr>
+    <tr><td><code>connectToFirstDevice()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>첫 번째 디바이스에 자동 연결</td></tr>
+    <tr><td><code>connectByVidPid(int vid, int pid)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>VID/PID를 지정하여 연결</td></tr>
+    <tr><td><code>disconnect()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>현재 연결 해제</td></tr>
+    <tr><td><code>reconnect()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>수동 재연결 트리거</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-2">4.2 음료 제조 및 제어</h2>
+<table>
+  <thead><tr><th style="width:50%">메서드</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>makeDrink(DrinkNumber, {bool useLocalBalance})</code> &rarr; <code>Future&lt;void&gt;</code></td><td>음료 제조 명령 전송</td></tr>
+    <tr><td><code>setHotTemperature(int upper, int lower)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>온수 온도 설정 (60~99 &deg;C)</td></tr>
+    <tr><td><code>setColdTemperature(int upper, int lower)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>냉수 온도 설정 (2~40 &deg;C)</td></tr>
+    <tr><td><code>setCupDropMode(CupDropModeEnum mode)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>컵 낙하 모드 설정</td></tr>
+    <tr><td><code>setDrinkPrice(DrinkNumber, int price)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>음료 가격 설정 (0~99)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-3">4.3 정보 조회</h2>
+<table>
+  <thead><tr><th style="width:50%">메서드</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>getMachineStatus()</code> &rarr; <code>Future&lt;MachineStatus&gt;</code></td><td>머신 상태 조회 (ready, busy, soldOut 등)</td></tr>
+    <tr><td><code>getErrorCode()</code> &rarr; <code>Future&lt;MachineError&gt;</code></td><td>에러 코드 비트 플래그 조회</td></tr>
+    <tr><td><code>getErrorInfo()</code> &rarr; <code>Future&lt;ErrorInfo&gt;</code></td><td>에러 상세 정보 + 복구 가이드</td></tr>
+    <tr><td><code>getBalance()</code> &rarr; <code>Future&lt;MachineBalance&gt;</code></td><td>투입 잔액 조회</td></tr>
+    <tr><td><code>getSalesCount(DrinkNumber)</code> &rarr; <code>Future&lt;DrinkSalesCount&gt;</code></td><td>음료별 판매 수량 조회</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-4">4.4 유지보수</h2>
+<table>
+  <thead><tr><th style="width:50%">메서드</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>testCupDrop()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>컵 낙하 테스트</td></tr>
+    <tr><td><code>autoInspection()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>자동 점검 실행</td></tr>
+    <tr><td><code>cleanAllPipes()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>전체 파이프 세척</td></tr>
+    <tr><td><code>cleanSpecificPipe(int number)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>특정 파이프 세척 (번호 지정)</td></tr>
+    <tr><td><code>returnChange()</code> &rarr; <code>Future&lt;ChangerStatus&gt;</code></td><td>거스름돈 반환</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-5" class="page-break">4.5 Series 3/R 확장 명령</h2>
+<div class="info-box">
+  아래 명령은 Series 3 및 R시리즈 모델에서 사용 가능합니다. Series 2 모델에서는 지원되지 않습니다.
+</div>
+<table>
+  <thead><tr><th>CMD</th><th style="width:45%">메서드</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr class="group-header"><td colspan="3">단위 기능 테스트</td></tr>
+    <tr><td>0x1A</td><td><code>unitFunctionTest(int testCmd, int data1, int data2, int data3)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>분말/온수/좌표/컵/뚜껑/문/얼음 등 개별 기능 테스트</td></tr>
+
+    <tr class="group-header"><td colspan="3">전자 잠금 장치</td></tr>
+    <tr><td rowspan="3">0x1B</td><td><code>lockDoor({int lockNumber})</code> &rarr; <code>Future&lt;LockStatus&gt;</code></td><td>잠금 장치 잠금</td></tr>
+    <tr><td><code>unlockDoor({int lockNumber})</code> &rarr; <code>Future&lt;LockStatus&gt;</code></td><td>잠금 장치 해제</td></tr>
+    <tr><td><code>getLockStatus({int lockNumber})</code> &rarr; <code>Future&lt;LockStatus&gt;</code></td><td>잠금 상태 조회</td></tr>
+
+    <tr class="group-header"><td colspan="3">물 보충</td></tr>
+    <tr><td>0x1C</td><td><code>waterRefill()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>물 보충 작업 실행</td></tr>
+
+    <tr class="group-header"><td colspan="3">상태 조회 (상세)</td></tr>
+    <tr><td>0x1E</td><td><code>getControllerStatus()</code> &rarr; <code>Future&lt;ControllerStatus&gt;</code></td><td>메인 컨트롤러 32비트 상세 상태 조회</td></tr>
+    <tr><td>0x1F</td><td><code>getDrinkStatus()</code> &rarr; <code>Future&lt;DrinkPreparationStatus&gt;</code></td><td>음료 제작 진행률 및 실패 코드 (EM01~EM26)</td></tr>
+
+    <tr class="group-header"><td colspan="3">에러 조회 (객체별)</td></tr>
+    <tr><td>0x22</td><td><code>getObjectException(ObjectType)</code> &rarr; <code>Future&lt;ObjectExceptionInfo&gt;</code></td><td>12가지 객체별 상세 에러 정보 조회</td></tr>
+
+    <tr class="group-header"><td colspan="3">강제 종료</td></tr>
+    <tr><td rowspan="2">0x23</td><td><code>forceStopDrinkProcess()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>음료 제조 프로세스 강제 종료</td></tr>
+    <tr><td><code>forceStopCupDelivery()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>컵 전달 프로세스 강제 종료</td></tr>
+
+    <tr class="group-header"><td colspan="3">컵 전달</td></tr>
+    <tr><td>0x24</td><td><code>cupDelivery(int waitTimeSeconds)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>컵 전달 (문 개방 후 지정 시간 대기)</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-6">4.6 커스텀 레시피 (R시리즈 전용)</h2>
+<div class="warn-box">
+  <strong>주의:</strong> 아래 명령은 R시리즈(GS801, RD-JK86, JK88) 전용입니다. GS805(Series 3)에서는 지원되지 않습니다.
+</div>
+<table>
+  <thead><tr><th>CMD</th><th style="width:45%">메서드</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td>0x1D</td><td><code>setDrinkRecipeProcess(DrinkNumber, List&lt;RecipeStep&gt;)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>커스텀 음료 레시피 정의 (최대 8단계)</td></tr>
+    <tr><td>0x25</td><td><code>executeChannel({required int channel, ...})</code> &rarr; <code>Future&lt;void&gt;</code></td><td>단일 채널 즉시 실행</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-7" class="page-break">4.7 Event Streams</h2>
+<p>SDK는 Dart Stream 기반의 실시간 이벤트 스트리밍을 제공합니다.</p>
+<table class="flow-table">
+  <thead><tr><th>Stream</th><th>타입</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>messageStream</code></td><td><code>Stream&lt;ResponseMessage&gt;</code></td><td>모든 응답 메시지 (raw)</td></tr>
+    <tr><td><code>eventStream</code></td><td><code>Stream&lt;MachineEvent&gt;</code></td><td>머신 이벤트 (능동 보고)</td></tr>
+    <tr><td><code>connectionStateStream</code></td><td><code>Stream&lt;bool&gt;</code></td><td>연결 상태 변화</td></tr>
+    <tr><td><code>reconnectEventStream</code></td><td><code>Stream&lt;ReconnectEvent&gt;</code></td><td>자동 재연결 이벤트</td></tr>
+  </tbody>
+</table>
+
+<h3>능동 보고 이벤트 (MachineEventType)</h3>
+<table>
+  <thead><tr><th>CMD</th><th>이벤트</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td>0x05</td><td><code>cupDropSuccess</code></td><td>컵 낙하 성공</td></tr>
+    <tr><td>0x10</td><td><code>drinkComplete</code></td><td>음료 제조 완료</td></tr>
+    <tr><td>0x06</td><td><code>iceDropComplete</code></td><td>얼음 투하 완료</td></tr>
+    <tr><td>0x20</td><td><code>trackObstacle</code></td><td>트랙 장애물 감지</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-8">4.8 Properties</h2>
+<table>
+  <thead><tr><th style="width:40%">속성</th><th>타입</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>isConnected</code></td><td><code>bool</code></td><td>현재 연결 여부</td></tr>
+    <tr><td><code>connectedDevice</code></td><td><code>SerialDevice?</code></td><td>연결된 디바이스 정보</td></tr>
+    <tr><td><code>isReconnecting</code></td><td><code>bool</code></td><td>재연결 진행 중 여부</td></tr>
+    <tr><td><code>bufferSize</code></td><td><code>int</code></td><td>수신 버퍼 크기</td></tr>
+  </tbody>
+</table>
+
+<h2 id="sec4-9">4.9 주요 클래스</h2>
+<table>
+  <thead><tr><th style="width:40%">클래스</th><th>설명</th></tr></thead>
+  <tbody>
+    <tr><td><code>GS805Serial</code></td><td>메인 API 클래스</td></tr>
+    <tr><td><code>SerialDevice</code></td><td>USB 시리얼 디바이스 정보</td></tr>
+    <tr><td><code>DrinkNumber</code></td><td>음료 선택 enum (14종)</td></tr>
+    <tr><td><code>MachineStatus</code></td><td>머신 상태 enum (9종)</td></tr>
+    <tr><td><code>MachineError</code></td><td>에러 비트 플래그 정보</td></tr>
+    <tr><td><code>MachineEvent</code></td><td>능동 보고 이벤트</td></tr>
+    <tr><td><code>LockStatus</code></td><td>잠금 장치 상태 (Series 3/R)</td></tr>
+    <tr><td><code>ControllerStatus</code></td><td>32비트 컨트롤러 상태 (Series 3/R)</td></tr>
+    <tr><td><code>DrinkPreparationStatus</code></td><td>음료 제작 진행률/실패 (Series 3/R)</td></tr>
+    <tr><td><code>ObjectExceptionInfo</code></td><td>객체별 에러 상세 (Series 3/R)</td></tr>
+    <tr><td><code>ObjectType</code></td><td>에러 조회 대상 객체 enum (Series 3/R)</td></tr>
+    <tr><td><code>RecipeStep</code></td><td>레시피 단계 정의 (R시리즈)</td></tr>
+    <tr><td><code>ReconnectConfig</code></td><td>자동 재연결 설정</td></tr>
+  </tbody>
+</table>
+
+<!-- ==================== 5. 사용 예제 ==================== -->
+<h1 id="sec5" class="page-break">5. 사용 예제</h1>
+
+<h2 id="sec5-1">5.1 연결 관리</h2>
+<pre><code><span class="kw">final</span> gs805 = <span class="type">GS805Serial</span>();
+
+<span class="cmt">// 디바이스 목록 조회</span>
+<span class="kw">final</span> devices = <span class="kw">await</span> gs805.<span class="fn">listDevices</span>();
+
+<span class="cmt">// 특정 디바이스에 연결</span>
+<span class="kw">await</span> gs805.<span class="fn">connect</span>(devices.first);
+
+<span class="cmt">// VID/PID로 연결</span>
+<span class="kw">await</span> gs805.<span class="fn">connectByVidPid</span>(<span class="num">0x1234</span>, <span class="num">0x5678</span>);
+
+<span class="cmt">// 연결 상태 확인</span>
+<span class="kw">if</span> (gs805.isConnected) {
+  <span class="fn">print</span>(<span class="str">'Connected to: ${gs805.connectedDevice?.name}'</span>);
+}
+
+<span class="cmt">// 연결 해제</span>
+<span class="kw">await</span> gs805.<span class="fn">disconnect</span>();</code></pre>
+
+<h2 id="sec5-2">5.2 음료 제조</h2>
+<pre><code><span class="cmt">// 온음료 1번 제조</span>
+<span class="kw">await</span> gs805.<span class="fn">makeDrink</span>(<span class="type">DrinkNumber</span>.hotDrink1);
+
+<span class="cmt">// 냉음료 3번 제조</span>
+<span class="kw">await</span> gs805.<span class="fn">makeDrink</span>(<span class="type">DrinkNumber</span>.coldDrink3);
+
+<span class="cmt">// 로컬 잔액 사용</span>
+<span class="kw">await</span> gs805.<span class="fn">makeDrink</span>(
+  <span class="type">DrinkNumber</span>.hotDrink2,
+  useLocalBalance: <span class="kw">true</span>,
+);
+
+<span class="cmt">// 사용 가능한 음료 목록</span>
+<span class="type">DrinkNumber</span>.hotDrinks;   <span class="cmt">// [hotDrink1 ~ hotDrink7]</span>
+<span class="type">DrinkNumber</span>.coldDrinks;  <span class="cmt">// [coldDrink1 ~ coldDrink7]</span></code></pre>
+
+<h2 id="sec5-3">5.3 온도 설정</h2>
+<pre><code><span class="cmt">// 온수 온도 설정 (60~99°C)</span>
+<span class="kw">await</span> gs805.<span class="fn">setHotTemperature</span>(
+  upperLimit: <span class="num">85</span>,
+  lowerLimit: <span class="num">75</span>,
+);
+
+<span class="cmt">// 냉수 온도 설정 (2~40°C)</span>
+<span class="kw">await</span> gs805.<span class="fn">setColdTemperature</span>(
+  upperLimit: <span class="num">10</span>,
+  lowerLimit: <span class="num">5</span>,
+);</code></pre>
+
+<h2 id="sec5-4" class="page-break">5.4 상태 및 에러 조회</h2>
+<pre><code><span class="cmt">// 머신 상태 조회</span>
+<span class="kw">final</span> status = <span class="kw">await</span> gs805.<span class="fn">getMachineStatus</span>();
+<span class="fn">print</span>(<span class="str">'Status: ${status.description}'</span>);
+
+<span class="cmt">// 잔액 조회</span>
+<span class="kw">final</span> balance = <span class="kw">await</span> gs805.<span class="fn">getBalance</span>();
+<span class="fn">print</span>(<span class="str">'Balance: ${balance.balance} tokens'</span>);
+
+<span class="cmt">// 판매 수량 조회</span>
+<span class="kw">final</span> sales = <span class="kw">await</span> gs805.<span class="fn">getSalesCount</span>(<span class="type">DrinkNumber</span>.hotDrink1);
+<span class="fn">print</span>(<span class="str">'Local: ${sales.localSalesCount}'</span>);
+<span class="fn">print</span>(<span class="str">'Command: ${sales.commandSalesCount}'</span>);
+
+<span class="cmt">// 에러 상세 정보 + 복구 가이드</span>
+<span class="kw">final</span> errorInfo = <span class="kw">await</span> gs805.<span class="fn">getErrorInfo</span>();
+<span class="kw">if</span> (errorInfo.error.hasError) {
+  <span class="fn">print</span>(<span class="str">'Severity: ${errorInfo.severity}'</span>);
+  <span class="kw">for</span> (<span class="kw">var</span> action <span class="kw">in</span> errorInfo.recoveryActions) {
+    <span class="fn">print</span>(<span class="str">'  - $action'</span>);
+  }
+}</code></pre>
+
+<h2 id="sec5-5">5.5 커스텀 레시피 (R시리즈)</h2>
+<h3>방법 1: 레시피 정의 후 실행</h3>
+<pre><code><span class="kw">final</span> steps = [
+  <span class="type">RecipeStep</span>.<span class="fn">cupDispense</span>(dispenser: <span class="num">1</span>),
+  <span class="type">RecipeStep</span>.<span class="fn">instantChannel</span>(
+    channel: <span class="num">0</span>, waterType: <span class="type">WaterType</span>.hot,
+    materialDuration: <span class="num">1000</span>, waterAmount: <span class="num">2000</span>,
+    materialSpeed: <span class="num">50</span>, mixSpeed: <span class="num">30</span>,
+  ),
+  <span class="type">RecipeStep</span>.<span class="fn">instantChannel</span>(
+    channel: <span class="num">1</span>, waterType: <span class="type">WaterType</span>.hot,
+    materialDuration: <span class="num">500</span>, waterAmount: <span class="num">0</span>,
+    materialSpeed: <span class="num">50</span>, mixSpeed: <span class="num">30</span>,
+  ),
+];
+<span class="kw">await</span> gs805.<span class="fn">setDrinkRecipeProcess</span>(<span class="type">DrinkNumber</span>.hotDrink1, steps);
+<span class="kw">await</span> gs805.<span class="fn">makeDrink</span>(<span class="type">DrinkNumber</span>.hotDrink1);</code></pre>
+
+<h3>방법 2: 채널 즉시 실행</h3>
+<pre><code><span class="kw">await</span> gs805.<span class="fn">testCupDrop</span>();
+<span class="kw">await</span> gs805.<span class="fn">executeChannel</span>(
+    channel: <span class="num">0</span>, waterType: <span class="type">WaterType</span>.hot,
+    materialDuration: <span class="num">1000</span>, waterAmount: <span class="num">2000</span>,
+    materialSpeed: <span class="num">50</span>);
+<span class="kw">await</span> gs805.<span class="fn">executeChannel</span>(
+    channel: <span class="num">1</span>, waterType: <span class="type">WaterType</span>.hot,
+    materialDuration: <span class="num">500</span>, waterAmount: <span class="num">0</span>,
+    materialSpeed: <span class="num">50</span>);</code></pre>
+
+<h2 id="sec5-6" class="page-break">5.6 이벤트 스트리밍</h2>
+<pre><code><span class="cmt">// 머신 이벤트 수신</span>
+gs805.eventStream.<span class="fn">listen</span>((event) {
+  <span class="kw">switch</span> (event.type) {
+    <span class="kw">case</span> <span class="type">MachineEventType</span>.cupDropSuccess:
+      <span class="fn">print</span>(<span class="str">'컵 낙하 성공'</span>);
+      <span class="kw">break</span>;
+    <span class="kw">case</span> <span class="type">MachineEventType</span>.drinkComplete:
+      <span class="fn">print</span>(<span class="str">'음료 완성!'</span>);
+      <span class="kw">break</span>;
+    <span class="kw">case</span> <span class="type">MachineEventType</span>.iceDropComplete:
+      <span class="fn">print</span>(<span class="str">'얼음 투하 완료'</span>);
+      <span class="kw">break</span>;
+    <span class="kw">case</span> <span class="type">MachineEventType</span>.trackObstacle:
+      <span class="fn">print</span>(<span class="str">'트랙 장애물 감지'</span>);
+      <span class="kw">break</span>;
+  }
+});
+
+<span class="cmt">// 연결 상태 모니터링</span>
+gs805.connectionStateStream.<span class="fn">listen</span>((isConnected) {
+  <span class="fn">print</span>(isConnected ? <span class="str">'Connected'</span> : <span class="str">'Disconnected'</span>);
+});
+
+<span class="cmt">// 재연결 이벤트 모니터링</span>
+gs805.reconnectEventStream.<span class="fn">listen</span>((event) {
+  <span class="fn">print</span>(<span class="str">'Reconnect: ${event.state}'</span>);
+  <span class="fn">print</span>(<span class="str">'Attempt: ${event.attempt}/${event.maxAttempts}'</span>);
+});</code></pre>
+
+<h2 id="sec5-7">5.7 자동 재연결</h2>
+<pre><code><span class="cmt">// Exponential Backoff 프리셋</span>
+<span class="kw">final</span> gs805 = <span class="type">GS805Serial</span>(
+  reconnectConfig: <span class="type">ReconnectConfig</span>.exponentialBackoff,
+);
+
+<span class="cmt">// 커스텀 재연결 설정</span>
+<span class="kw">final</span> customConfig = <span class="type">ReconnectConfig</span>(
+  strategy: <span class="type">ReconnectStrategy</span>.exponentialBackoff,
+  maxAttempts: <span class="num">10</span>,
+  initialDelay: <span class="type">Duration</span>(milliseconds: <span class="num">500</span>),
+  maxDelay: <span class="type">Duration</span>(seconds: <span class="num">30</span>),
+  backoffMultiplier: <span class="num">2.0</span>,
+);
+
+<span class="kw">final</span> gs805 = <span class="type">GS805Serial</span>(reconnectConfig: customConfig);
+
+<span class="cmt">// 재연결 상태 확인</span>
+<span class="kw">if</span> (gs805.isReconnecting) {
+  <span class="fn">print</span>(<span class="str">'Reconnecting...'</span>);
+}
+
+<span class="cmt">// 수동 재연결</span>
+<span class="kw">await</span> gs805.<span class="fn">reconnect</span>();</code></pre>
+
+<!-- ==================== 6. 기술 사양 ==================== -->
+<h1 id="sec6" class="page-break">6. 기술 사양</h1>
+
+<table class="spec-table">
+  <tr><th>항목</th><td>사양</td></tr>
+  <tr><th>언어</th><td>Dart 3.0+</td></tr>
+  <tr><th>프레임워크</th><td>Flutter 3.0+</td></tr>
+  <tr><th>비동기 처리</th><td>Dart Stream / Future</td></tr>
+  <tr><th>USB 시리얼 라이브러리</th><td>usb_serial 패키지</td></tr>
+  <tr><th>최소 Android SDK</th><td>API 19 (Android 4.4 KitKat)</td></tr>
+  <tr><th>통신 프로토콜</th><td>UART RS232, 9600 bps, 8N1, Big Endian</td></tr>
+  <tr><th>자동 재연결</th><td>Exponential Backoff / Fixed Interval</td></tr>
+  <tr><th>테스트 커버리지</th><td>97+ unit tests</td></tr>
+  <tr><th>패키지</th><td><code>gs805serial</code></td></tr>
+</table>
+
+<!-- ==================== 7. 문서 이력 ==================== -->
+<h1 id="sec7">7. 문서 이력</h1>
+<table>
+  <thead><tr><th>버전</th><th>날짜</th><th>내용</th></tr></thead>
+  <tbody>
+    <tr><td>1.0.0</td><td>2026-03-25</td><td>초판 작성 — 전체 API (기본 14개 + 능동보고 4개 + R시리즈 2개 + Series 3/R 확장 11개)</td></tr>
+  </tbody>
+</table>
+
+<div class="footer">
+  &copy; 2026 AnyEats Co., Ltd. All rights reserved. &mdash; Confidential
+</div>
+
+</body>
+</html>
