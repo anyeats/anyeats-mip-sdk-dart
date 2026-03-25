@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- USB Serial Device Filter -->
+    <!-- This filter allows the app to be notified when USB serial devices are attached -->
+
+    <!-- FTDI devices -->
+    <usb-device vendor-id="1027" />
+
+    <!-- CP210x devices -->
+    <usb-device vendor-id="4292" />
+
+    <!-- CH340/CH341 devices -->
+    <usb-device vendor-id="6790" />
+
+    <!-- Prolific PL2303 devices -->
+    <usb-device vendor-id="1659" />
+
+    <!-- CDC ACM (generic USB serial) -->
+    <!-- Note: Many devices use CDC ACM class, so this is very permissive -->
+    <!-- You may want to add specific vendor-id/product-id pairs if known -->
+
+    <!-- Add your specific device here if you know the VID/PID -->
+    <!-- Example: GS805 coffee machine (replace with actual values) -->
+    <!-- <usb-device vendor-id="XXXX" product-id="YYYY" /> -->
+</resources>

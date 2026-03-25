@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew install:*)",
+      "Bash(brew list:*)",
+      "Bash(/opt/homebrew/bin/pdftotext /Users/jlee/Documents/Dev/source/gs805serial/document.pdf -)",
+      "Bash(flutter test:*)",
+      "Bash(python3:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(flutter run:*)",
+      "Bash(flutter devices:*)",
+      "Bash(flutter create:*)",
+      "Bash(emulator:*)",
+      "Bash(flutter doctor:*)",
+      "Bash(/Users/jlee/Library/Android/sdk/emulator/emulator -list-avds:*)",
+      "Bash(pdftotext:*)",
+      "Bash(system_profiler:*)",
+      "Bash(adb devices:*)",
+      "Bash(flutter analyze:*)"
+    ]
+  }
+}
