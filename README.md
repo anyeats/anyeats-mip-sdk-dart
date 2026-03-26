@@ -203,6 +203,60 @@ if (errorInfo.error.hasError) {
 }
 ```
 
+### MDB Card Payment
+
+SDK includes `MdbCashless` class for controlling MDB cashless card readers via MDB-RS232 bridge.
+Uses a **separate serial port** from the GS805 machine.
+
+```dart
+// MDB 카드리더 인스턴스 (GS805Serial과 별도)
+final mdb = MdbCashless();
+
+// 1. MDB 브릿지 연결
+final mdbDevices = await mdb.listDevices();
+await mdb.connect(mdbDevices.first);
+
+// 2. 초기 설정 (앱 시작 시 1회)
+await mdb.setup(maxPrice: 0xFFFF, minPrice: 0x0000);
+await mdb.enable();
+
+// 3. 결제 이벤트 수신
+mdb.eventStream.listen((event) {
+  switch (event.type) {
+    case CashlessEventType.cardDetected:
+      mdb.requestVend(price: 1000, itemNumber: 1);
+      break;
+    case CashlessEventType.vendApproved:
+      gs805.makeDrink(DrinkNumber.hotDrink1);  // 음료 제조
+      mdb.vendSuccess(itemNumber: 1);
+      mdb.sessionComplete();
+      break;
+    case CashlessEventType.vendDenied:
+      mdb.sessionComplete();
+      break;
+    default:
+      break;
+  }
+});
+```
+
+#### MDB API Summary
+
+| Method | Description |
+|---|---|
+| `listDevices()` | List MDB bridge devices |
+| `connect(device)` | Connect to MDB-RS232 bridge |
+| `disconnect()` | Disconnect |
+| `setup({maxPrice, minPrice})` | Initialize card reader |
+| `enable()` / `disable()` | Enable/disable card reader |
+| `requestVend({price, itemNumber})` | Request payment |
+| `vendSuccess({itemNumber})` | Confirm dispensing success |
+| `vendCancel()` | Cancel vend |
+| `cashSale({price, itemNumber})` | Report cash sale |
+| `sessionComplete()` | End session |
+
+> For detailed guide, see [ShakeBox_MDB_Payment_Guide](ShakeBox_MDB_Payment_Guide.html)
+
 ### Custom Recipe (R Series)
 
 ```dart
