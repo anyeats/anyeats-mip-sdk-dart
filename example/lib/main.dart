@@ -301,6 +301,325 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     }
   }
 
+  // ========== Maintenance Actions ==========
+
+  Future<void> _cleanSpecificPipe(int pipeNumber) async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.cleanSpecificPipe(pipeNumber);
+      _addEventLog('Cleaning pipe #$pipeNumber...');
+      _showSnackBar('Cleaning pipe #$pipeNumber...', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Clean pipe failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getErrorCode() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final error = await _gs805.getErrorCode();
+      _addEventLog('Error code: $error');
+    } catch (e) {
+      _showSnackBar('Get error code failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getErrorInfo() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final info = await _gs805.getErrorInfo();
+      _addEventLog('Error info: $info');
+    } catch (e) {
+      _showSnackBar('Get error info failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _returnChange() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final status = await _gs805.returnChange();
+      _addEventLog('Change return: $status');
+    } catch (e) {
+      _showSnackBar('Return change failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _setHotTemperature() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.setHotTemperature(90, 70);
+      _addEventLog('Hot temp set: upper=90, lower=70');
+      _showSnackBar('Hot temperature set (90/70)', Colors.green);
+    } catch (e) {
+      _showSnackBar('Set hot temp failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _setColdTemperature() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.setColdTemperature(10, 5);
+      _addEventLog('Cold temp set: upper=10, lower=5');
+      _showSnackBar('Cold temperature set (10/5)', Colors.green);
+    } catch (e) {
+      _showSnackBar('Set cold temp failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _setCupDropMode(CupDropModeEnum mode) async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.setCupDropMode(mode);
+      _addEventLog('Cup drop mode set: ${mode.displayName}');
+      _showSnackBar('Cup drop mode: ${mode.displayName}', Colors.green);
+    } catch (e) {
+      _showSnackBar('Set cup drop mode failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _setDrinkPrice() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.setDrinkPrice(DrinkNumber.hotDrink1, 10);
+      _addEventLog('Drink price set: Hot Drink 1 = 10 tokens');
+      _showSnackBar('Price set: Hot Drink 1 = 10', Colors.green);
+    } catch (e) {
+      _showSnackBar('Set drink price failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getSalesCount() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final count = await _gs805.getSalesCount(DrinkNumber.hotDrink1);
+      _addEventLog('Sales count: $count');
+    } catch (e) {
+      _showSnackBar('Get sales count failed: $e', Colors.red);
+    }
+  }
+
+  // ========== Extended Actions ==========
+
+  Future<void> _unitFunctionTest() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.unitFunctionTest(1, 0, 0, 0);
+      _addEventLog('Unit function test (dispensing) started');
+      _showSnackBar('Dispensing test started', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Unit test failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _lockDoor() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final status = await _gs805.lockDoor();
+      _addEventLog('Lock door: $status');
+    } catch (e) {
+      _showSnackBar('Lock door failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _unlockDoor() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final status = await _gs805.unlockDoor();
+      _addEventLog('Unlock door: $status');
+    } catch (e) {
+      _showSnackBar('Unlock door failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getLockStatus() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final status = await _gs805.getLockStatus();
+      _addEventLog('Lock status: $status');
+    } catch (e) {
+      _showSnackBar('Get lock status failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _waterRefill() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.waterRefill();
+      _addEventLog('Water refill triggered');
+      _showSnackBar('Water refill started', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Water refill failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getControllerStatus() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final status = await _gs805.getControllerStatus();
+      _addEventLog('Controller status: $status');
+    } catch (e) {
+      _showSnackBar('Get controller status failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getDrinkStatus() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final status = await _gs805.getDrinkStatus();
+      _addEventLog('Drink status: $status');
+    } catch (e) {
+      _showSnackBar('Get drink status failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _getObjectException() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final info = await _gs805.getObjectException(ObjectType.pump);
+      _addEventLog('Object exception (pump): $info');
+    } catch (e) {
+      _showSnackBar('Get object exception failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _forceStopDrinkProcess() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.forceStopDrinkProcess();
+      _addEventLog('Force stop drink process sent');
+      _showSnackBar('Drink process stopped', Colors.orange);
+    } catch (e) {
+      _showSnackBar('Force stop failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _forceStopCupDelivery() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.forceStopCupDelivery();
+      _addEventLog('Force stop cup delivery sent');
+      _showSnackBar('Cup delivery stopped', Colors.orange);
+    } catch (e) {
+      _showSnackBar('Force stop cup delivery failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _cupDelivery() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.cupDelivery(30);
+      _addEventLog('Cup delivery started (30s timeout)');
+      _showSnackBar('Cup delivery started', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Cup delivery failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _setDrinkRecipeProcess() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final steps = [
+        RecipeStep.cupDispense(dispenser: 1),
+        RecipeStep.instantChannel(
+          channel: 0,
+          waterType: WaterType.hot,
+          materialDuration: 1000,
+          waterAmount: 2000,
+          materialSpeed: 50,
+          mixSpeed: 30,
+        ),
+      ];
+      await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, steps);
+      _addEventLog('Recipe set for Hot Drink 1 (${steps.length} steps)');
+      _showSnackBar('Recipe set successfully', Colors.green);
+    } catch (e) {
+      _showSnackBar('Set recipe failed: $e', Colors.red);
+    }
+  }
+
+  Future<void> _executeChannel() async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      await _gs805.executeChannel(
+        channel: 0,
+        waterType: WaterType.hot,
+        materialDuration: 1000,
+        waterAmount: 2000,
+        materialSpeed: 50,
+      );
+      _addEventLog('Execute channel 0 (hot, mat=1000, water=2000, speed=50)');
+      _showSnackBar('Channel executed', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Execute channel failed: $e', Colors.red);
+    }
+  }
+
   // ========== MDB Cashless Actions ==========
 
   Future<void> _mdbConnect() async {
@@ -387,6 +706,15 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
   Future<void> _mdbRequestId() async {
     try {
       await _mdbCashless.requestId();
+    } catch (e) {
+      _showSnackBar('$e', Colors.red);
+    }
+  }
+
+  Future<void> _mdbCashSale() async {
+    try {
+      await _mdbCashless.cashSale(price: _vendPrice, itemNumber: 1);
+      _addEventLog('[MDB] Cash sale reported: price=$_vendPrice');
     } catch (e) {
       _showSnackBar('$e', Colors.red);
     }
@@ -512,15 +840,17 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
           if (_isConnected)
             Expanded(
               child: DefaultTabController(
-                length: 4,
+                length: 5,
                 child: Column(
                   children: [
                     const TabBar(
+                      isScrollable: true,
                       tabs: [
                         Tab(text: 'Hot'),
                         Tab(text: 'Cold'),
                         Tab(text: 'Payment'),
                         Tab(text: 'Maint.'),
+                        Tab(text: 'Extended'),
                       ],
                     ),
                     Expanded(
@@ -530,6 +860,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                           _buildDrinkGrid(DrinkNumber.coldDrinks),
                           _buildPaymentPanel(),
                           _buildMaintenancePanel(),
+                          _buildExtendedPanel(),
                         ],
                       ),
                     ),
@@ -846,6 +1177,10 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                       onPressed: _mdbConnected ? _mdbRequestId : null,
                       child: const Text('Reader ID'),
                     ),
+                    ElevatedButton(
+                      onPressed: _mdbConnected ? _mdbCashSale : null,
+                      child: const Text('Cash Sale'),
+                    ),
                   ],
                 ),
               ],
@@ -1013,6 +1348,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     return ListView(
       padding: const EdgeInsets.all(8.0),
       children: [
+        // --- Existing maintenance items ---
         ListTile(
           leading: const Icon(Icons.coffee_maker),
           title: const Text('Test Cup Drop'),
@@ -1037,6 +1373,19 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
         ),
         const Divider(),
         ListTile(
+          leading: const Icon(Icons.cleaning_services_outlined),
+          title: const Text('Clean Specific Pipe'),
+          subtitle: const Text('Clean pipe #1'),
+          trailing: ElevatedButton(
+            onPressed: () => _cleanSpecificPipe(1),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[200],
+            ),
+            child: const Text('Clean #1'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
           leading: const Icon(Icons.build),
           title: const Text('Auto Inspection'),
           subtitle: const Text('Run automatic system inspection'),
@@ -1050,6 +1399,365 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
               }
             },
             child: const Text('Inspect'),
+          ),
+        ),
+
+        // --- Error Info ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Diagnostics',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.error_outline),
+          title: const Text('Get Error Code'),
+          subtitle: const Text('Query current machine error code'),
+          trailing: ElevatedButton(
+            onPressed: _getErrorCode,
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.info_outline),
+          title: const Text('Get Error Info'),
+          subtitle: const Text('Detailed error with recovery actions'),
+          trailing: ElevatedButton(
+            onPressed: _getErrorInfo,
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.money_off),
+          title: const Text('Return Change'),
+          subtitle: const Text('Trigger coin changer to return change'),
+          trailing: ElevatedButton(
+            onPressed: _returnChange,
+            child: const Text('Return'),
+          ),
+        ),
+
+        // --- Temperature & Settings ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Temperature & Settings',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.thermostat, color: Colors.red),
+          title: const Text('Set Hot Temperature'),
+          subtitle: const Text('Upper: 90, Lower: 70'),
+          trailing: ElevatedButton(
+            onPressed: _setHotTemperature,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[100],
+            ),
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.thermostat, color: Colors.blue),
+          title: const Text('Set Cold Temperature'),
+          subtitle: const Text('Upper: 10, Lower: 5'),
+          trailing: ElevatedButton(
+            onPressed: _setColdTemperature,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[100],
+            ),
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.coffee),
+          title: const Text('Cup Drop Mode'),
+          subtitle: const Text('Set automatic or manual cup drop'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                onPressed: () => _setCupDropMode(CupDropModeEnum.automatic),
+                child: const Text('Auto'),
+              ),
+              const SizedBox(width: 4),
+              ElevatedButton(
+                onPressed: () => _setCupDropMode(CupDropModeEnum.manual),
+                child: const Text('Manual'),
+              ),
+            ],
+          ),
+        ),
+
+        // --- Pricing & Sales ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Pricing & Sales',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.attach_money),
+          title: const Text('Set Drink Price'),
+          subtitle: const Text('Hot Drink 1 = 10 tokens'),
+          trailing: ElevatedButton(
+            onPressed: _setDrinkPrice,
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.bar_chart),
+          title: const Text('Get Sales Count'),
+          subtitle: const Text('Query Hot Drink 1 sales statistics'),
+          trailing: ElevatedButton(
+            onPressed: _getSalesCount,
+            child: const Text('Query'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ========== Extended Panel (R-Series Commands) ==========
+
+  Widget _buildExtendedPanel() {
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: [
+        // --- Controller & Status ---
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Status Queries',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.developer_board),
+          title: const Text('Get Controller Status'),
+          subtitle: const Text('Query main controller status (R series)'),
+          trailing: ElevatedButton(
+            onPressed: _getControllerStatus,
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.local_cafe),
+          title: const Text('Get Drink Status'),
+          subtitle: const Text('Query drink preparation progress'),
+          trailing: ElevatedButton(
+            onPressed: _getDrinkStatus,
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.warning_amber),
+          title: const Text('Get Object Exception'),
+          subtitle: const Text('Query pump exception info'),
+          trailing: ElevatedButton(
+            onPressed: _getObjectException,
+            child: const Text('Query'),
+          ),
+        ),
+
+        // --- Door Lock ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Door Lock Control',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.lock),
+          title: const Text('Lock Door'),
+          subtitle: const Text('Lock the electronic door lock'),
+          trailing: ElevatedButton(
+            onPressed: _lockDoor,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[100],
+            ),
+            child: const Text('Lock'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.lock_open),
+          title: const Text('Unlock Door'),
+          subtitle: const Text('Unlock the electronic door lock'),
+          trailing: ElevatedButton(
+            onPressed: _unlockDoor,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[100],
+            ),
+            child: const Text('Unlock'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.lock_clock),
+          title: const Text('Get Lock Status'),
+          subtitle: const Text('Query current lock state'),
+          trailing: ElevatedButton(
+            onPressed: _getLockStatus,
+            child: const Text('Query'),
+          ),
+        ),
+
+        // --- Machine Control ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Machine Control',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.science),
+          title: const Text('Unit Function Test'),
+          subtitle: const Text('Run dispensing test (cmd=1)'),
+          trailing: ElevatedButton(
+            onPressed: _unitFunctionTest,
+            child: const Text('Test'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.water_drop),
+          title: const Text('Water Refill'),
+          subtitle: const Text('Trigger water tank refill'),
+          trailing: ElevatedButton(
+            onPressed: _waterRefill,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[100],
+            ),
+            child: const Text('Refill'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.coffee_maker),
+          title: const Text('Cup Delivery'),
+          subtitle: const Text('Deliver cup to holder (30s timeout)'),
+          trailing: ElevatedButton(
+            onPressed: _cupDelivery,
+            child: const Text('Deliver'),
+          ),
+        ),
+
+        // --- Force Stop ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Force Stop',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.stop_circle, color: Colors.red),
+          title: const Text('Force Stop Drink Process'),
+          subtitle: const Text('Immediately stop current drink making'),
+          trailing: ElevatedButton(
+            onPressed: _forceStopDrinkProcess,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[300],
+            ),
+            child: const Text('Stop'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.stop_circle_outlined, color: Colors.red),
+          title: const Text('Force Stop Cup Delivery'),
+          subtitle: const Text('Immediately stop cup delivery'),
+          trailing: ElevatedButton(
+            onPressed: _forceStopCupDelivery,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red[200],
+            ),
+            child: const Text('Stop'),
+          ),
+        ),
+
+        // --- Recipe Commands ---
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Text(
+            'Recipe Commands',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.receipt_long),
+          title: const Text('Set Drink Recipe'),
+          subtitle: const Text('Set Hot Drink 1 recipe (cup + instant channel)'),
+          trailing: ElevatedButton(
+            onPressed: _setDrinkRecipeProcess,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple[100],
+            ),
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.play_circle),
+          title: const Text('Execute Channel'),
+          subtitle: const Text('Ch0, hot, mat=1000, water=2000, speed=50'),
+          trailing: ElevatedButton(
+            onPressed: _executeChannel,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple[100],
+            ),
+            child: const Text('Execute'),
           ),
         ),
       ],
