@@ -45,6 +45,16 @@ android {
 
     defaultConfig {
         minSdk = 24
+
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a", "x86_64"
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path "src/main/jni/CMakeLists.txt"
+        }
     }
 
     dependencies {

@@ -254,6 +254,7 @@
   <table>
     <thead><tr><th>버전</th><th>날짜</th><th>내용</th></tr></thead>
     <tbody>
+      <tr><td>0.1.1</td><td>2026-04-02</td><td>Hardware UART (UartSerialConnection) 연결 방식 추가</td></tr>
       <tr><td>0.1</td><td>2026-04-01</td><td>초판 작성 — 전체 API (기본 14개 + 능동보고 4개 + R시리즈 2개 + Series 3/R 확장 11개)</td></tr>
     </tbody>
   </table>
@@ -305,7 +306,7 @@
 <h2 id="sec1-1">1.1 통신 사양</h2>
 <table class="spec-table">
   <tr><th>항목</th><td>사양</td></tr>
-  <tr><th>통신 방식</th><td>UART RS232 (USB Serial)</td></tr>
+  <tr><th>통신 방식</th><td>UART RS232 (USB Serial / Hardware UART)</td></tr>
   <tr><th>전송 속도</th><td>9600 bps</td></tr>
   <tr><th>데이터 형식</th><td>8N1 (8 data bits, No parity, 1 stop bit)</td></tr>
   <tr><th>바이트 순서</th><td>Big Endian</td></tr>
@@ -385,7 +386,7 @@ $ flutter pub get</code></pre>
   <tr><th>항목</th><td>사양</td></tr>
   <tr><th>언어</th><td>Dart</td></tr>
   <tr><th>비동기</th><td>Stream / Future</td></tr>
-  <tr><th>USB 시리얼</th><td>usb_serial 패키지</td></tr>
+  <tr><th>시리얼 통신</th><td>USB: usb_serial 패키지 / UART: JNI (termios) + Platform Channel</td></tr>
   <tr><th>Flutter SDK</th><td>&gt;= 3.0.0</td></tr>
   <tr><th>Dart SDK</th><td>&gt;= 3.0.0</td></tr>
   <tr><th>최소 Android</th><td>API 19 (Android 4.4)</td></tr>
@@ -396,8 +397,9 @@ $ flutter pub get</code></pre>
 <pre><code><span class="kw">import</span> <span class="str">'package:gs805serial/gs805serial.dart'</span>;
 
 <span class="kw">void</span> <span class="fn">main</span>() <span class="kw">async</span> {
-  <span class="cmt">// 1. 인스턴스 생성 (자동 재연결 포함)</span>
+  <span class="cmt">// 1. 인스턴스 생성 (Hardware UART, 자동 재연결 포함)</span>
   <span class="kw">final</span> gs805 = <span class="type">GS805Serial</span>(
+    connection: <span class="type">UartSerialConnection</span>(),
     reconnectConfig: <span class="type">ReconnectConfig</span>.exponentialBackoff,
   );
 
@@ -429,7 +431,7 @@ $ flutter pub get</code></pre>
 <table>
   <thead><tr><th style="width:50%">메서드</th><th>설명</th></tr></thead>
   <tbody>
-    <tr><td><code>listDevices()</code> &rarr; <code>Future&lt;List&lt;SerialDevice&gt;&gt;</code></td><td>USB 시리얼 디바이스 목록 반환</td></tr>
+    <tr><td><code>listDevices()</code> &rarr; <code>Future&lt;List&lt;SerialDevice&gt;&gt;</code></td><td>시리얼 디바이스 목록 반환 (USB 또는 UART)</td></tr>
     <tr><td><code>connect(SerialDevice device)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>지정 디바이스에 연결</td></tr>
     <tr><td><code>connectToFirstDevice()</code> &rarr; <code>Future&lt;void&gt;</code></td><td>첫 번째 디바이스에 자동 연결</td></tr>
     <tr><td><code>connectByVidPid(int vid, int pid)</code> &rarr; <code>Future&lt;void&gt;</code></td><td>VID/PID를 지정하여 연결</td></tr>
@@ -559,7 +561,7 @@ $ flutter pub get</code></pre>
   <thead><tr><th style="width:40%">클래스</th><th>설명</th></tr></thead>
   <tbody>
     <tr><td><code>GS805Serial</code></td><td>메인 API 클래스</td></tr>
-    <tr><td><code>SerialDevice</code></td><td>USB 시리얼 디바이스 정보</td></tr>
+    <tr><td><code>SerialDevice</code></td><td>시리얼 디바이스 정보 (USB / UART)</td></tr>
     <tr><td><code>DrinkNumber</code></td><td>음료 선택 enum (14종)</td></tr>
     <tr><td><code>MachineStatus</code></td><td>머신 상태 enum (9종)</td></tr>
     <tr><td><code>MachineError</code></td><td>에러 비트 플래그 정보</td></tr>
@@ -742,7 +744,7 @@ gs805.reconnectEventStream.<span class="fn">listen</span>((event) {
   <tr><th>언어</th><td>Dart 3.0+</td></tr>
   <tr><th>프레임워크</th><td>Flutter 3.0+</td></tr>
   <tr><th>비동기 처리</th><td>Dart Stream / Future</td></tr>
-  <tr><th>USB 시리얼 라이브러리</th><td>usb_serial 패키지</td></tr>
+  <tr><th>시리얼 라이브러리</th><td>USB: usb_serial 패키지 / UART: JNI (termios) + Platform Channel</td></tr>
   <tr><th>최소 Android SDK</th><td>API 19 (Android 4.4 KitKat)</td></tr>
   <tr><th>통신 프로토콜</th><td>UART RS232, 9600 bps, 8N1, Big Endian</td></tr>
   <tr><th>자동 재연결</th><td>Exponential Backoff / Fixed Interval</td></tr>

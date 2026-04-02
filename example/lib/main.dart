@@ -31,11 +31,14 @@ class CoffeeMachineScreen extends StatefulWidget {
 
 class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
   final GS805Serial _gs805 = GS805Serial(
+    connection: UartSerialConnection(),
     reconnectConfig: ReconnectConfig.exponentialBackoff,
   );
 
   // --- MDB Cashless ---
-  final MdbCashless _mdbCashless = MdbCashless();
+  final MdbCashless _mdbCashless = MdbCashless(
+    connection: UartSerialConnection(),
+  );
 
   List<SerialDevice> _devices = [];
   SerialDevice? _selectedDevice;
