@@ -81,6 +81,43 @@ class UartMethodChannelHandler(messenger: BinaryMessenger) :
             "isConnected" -> {
                 result.success(serialPort?.isOpen == true)
             }
+            "shellCommand" -> {
+                val command = call.argument<String>("command")
+                if (command == null) {
+                    result.error("INVALID_ARGUMENT", "Command is required", null)
+                    return
+                }
+                runShellCommand(command, result)
+            }
+            "portInfo" -> {
+                val path = call.argument<String>("path") ?: "/dev/ttyS2"
+                getPortInfo(path, result)
+            }
+            "killProcess" -> {
+                val pid = call.argument<Int>("pid")
+                if (pid == null) {
+                    result.error("INVALID_ARGUMENT", "PID is required", null)
+                    return
+                }
+                killProcess(pid, result)
+            }
+            "httpGet" -> {
+                val url = call.argument<String>("url")
+                if (url == null) {
+                    result.error("INVALID_ARGUMENT", "URL is required", null)
+                    return
+                }
+                httpGet(url, result)
+            }
+            "httpDownload" -> {
+                val url = call.argument<String>("url")
+                val savePath = call.argument<String>("savePath")
+                if (url == null || savePath == null) {
+                    result.error("INVALID_ARGUMENT", "URL and savePath are required", null)
+                    return
+                }
+                httpDownload(url, savePath, result)
+            }
             else -> result.notImplemented()
         }
     }
@@ -101,6 +138,8 @@ class UartMethodChannelHandler(messenger: BinaryMessenger) :
                 Pair("/dev/ttySAC", 0..15),
                 Pair("/dev/ttyUSB", 0..15),
                 Pair("/dev/ttyACM", 0..15),
+                Pair("/dev/ttyGS", 0..3),
+                Pair("/dev/ttyFIQ", 0..3),
             )
 
             for ((prefix, range) in patterns) {
@@ -211,9 +250,12 @@ class UartMethodChannelHandler(messenger: BinaryMessenger) :
                         mainHandler.post {
                             eventSink?.success(data)
                         }
-                    } else if (bytesRead < 0) {
-                        // Stream closed
-                        break
+                    }
+                    // bytesRead <= 0: continue loop (don't break on timeout/EOF for serial ports)
+                } catch (e: java.io.IOException) {
+                    if (isReading) {
+                        // Brief pause before retry to avoid tight loop on transient errors
+                        try { Thread.sleep(100) } catch (_: Exception) {}
                     }
                 } catch (e: Exception) {
                     if (isReading) {
@@ -243,6 +285,163 @@ class UartMethodChannelHandler(messenger: BinaryMessenger) :
 
     override fun onCancel(arguments: Any?) {
         eventSink = null
+    }
+
+    /**
+     * Run a shell command and return its output.
+     */
+    private fun runShellCommand(command: String, result: MethodChannel.Result) {
+        try {
+            val process = Runtime.getRuntime().exec(arrayOf("sh", "-c", command))
+            val output = process.inputStream.bufferedReader().readText()
+            val error = process.errorStream.bufferedReader().readText()
+            process.waitFor()
+            result.success(mapOf(
+                "stdout" to output,
+                "stderr" to error,
+                "exitCode" to process.exitValue()
+            ))
+        } catch (e: Exception) {
+            result.error("SHELL_ERROR", "Command failed: ${e.message}", null)
+        }
+    }
+
+    /**
+     * Get detailed info about a serial port: permissions, owner, and which process is using it.
+     */
+    private fun getPortInfo(path: String, result: MethodChannel.Result) {
+        try {
+            val info = mutableMapOf<String, Any?>()
+            val file = File(path)
+            info["exists"] = file.exists()
+            info["readable"] = file.canRead()
+            info["writable"] = file.canWrite()
+
+            // ls -la
+            try {
+                val lsProcess = Runtime.getRuntime().exec(arrayOf("sh", "-c", "ls -la $path"))
+                info["ls"] = lsProcess.inputStream.bufferedReader().readText().trim()
+                lsProcess.waitFor()
+            } catch (_: Exception) {}
+
+            // fuser - find which process is using the port
+            try {
+                val fuserProcess = Runtime.getRuntime().exec(arrayOf("sh", "-c", "fuser $path 2>/dev/null"))
+                val pids = fuserProcess.inputStream.bufferedReader().readText().trim()
+                fuserProcess.waitFor()
+                info["pids"] = pids
+            } catch (_: Exception) {}
+
+            // Try with su if normal fuser returned nothing
+            if ((info["pids"] as? String).isNullOrBlank()) {
+                try {
+                    val suProcess = Runtime.getRuntime().exec(arrayOf("su", "-c", "fuser $path 2>/dev/null"))
+                    val pids = suProcess.inputStream.bufferedReader().readText().trim()
+                    suProcess.waitFor()
+                    info["pids"] = pids
+                } catch (_: Exception) {}
+            }
+
+            result.success(info)
+        } catch (e: Exception) {
+            result.error("PORT_INFO_ERROR", "Failed to get port info: ${e.message}", null)
+        }
+    }
+
+    /**
+     * Kill a process by PID.
+     */
+    private fun killProcess(pid: Int, result: MethodChannel.Result) {
+        try {
+            // Try normal kill first
+            var process = Runtime.getRuntime().exec(arrayOf("sh", "-c", "kill -9 $pid"))
+            process.waitFor()
+            if (process.exitValue() != 0) {
+                // Try with su
+                process = Runtime.getRuntime().exec(arrayOf("su", "-c", "kill -9 $pid"))
+                process.waitFor()
+            }
+            val output = process.inputStream.bufferedReader().readText()
+            val error = process.errorStream.bufferedReader().readText()
+            result.success(mapOf(
+                "success" to (process.exitValue() == 0),
+                "stdout" to output,
+                "stderr" to error
+            ))
+        } catch (e: Exception) {
+            result.error("KILL_ERROR", "Failed to kill process: ${e.message}", null)
+        }
+    }
+
+    /**
+     * HTTP GET request using HttpURLConnection.
+     */
+    private fun httpGet(url: String, result: MethodChannel.Result) {
+        Thread {
+            try {
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                connection.requestMethod = "GET"
+
+                val responseCode = connection.responseCode
+                val body = connection.inputStream.bufferedReader().readText()
+                connection.disconnect()
+
+                mainHandler.post {
+                    result.success(mapOf(
+                        "statusCode" to responseCode,
+                        "body" to body
+                    ))
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    result.error("HTTP_ERROR", "HTTP GET failed: ${e.message}", null)
+                }
+            }
+        }.start()
+    }
+
+    /**
+     * Download file via HTTP and save to local path.
+     */
+    private fun httpDownload(url: String, savePath: String, result: MethodChannel.Result) {
+        Thread {
+            try {
+                val connection = java.net.URL(url).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 5000
+                connection.readTimeout = 30000
+                connection.requestMethod = "GET"
+
+                val responseCode = connection.responseCode
+                if (responseCode != 200) {
+                    mainHandler.post {
+                        result.error("HTTP_ERROR", "Download failed: HTTP $responseCode", null)
+                    }
+                    return@Thread
+                }
+
+                val file = java.io.File(savePath)
+                connection.inputStream.use { input ->
+                    java.io.FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                connection.disconnect()
+
+                mainHandler.post {
+                    result.success(mapOf(
+                        "success" to true,
+                        "path" to savePath,
+                        "size" to file.length()
+                    ))
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    result.error("DOWNLOAD_ERROR", "Download failed: ${e.message}", null)
+                }
+            }
+        }.start()
     }
 
     /**

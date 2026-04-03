@@ -366,12 +366,12 @@ class GS805Serial {
 
     // Parse response data
     // DATA: STA + DrinkNo + Local_NUM(4) + Cmd_NUM(4)
-    final drinkNo = response.getDataByte(0)!;
-    final localNum = response.getDataDWord(1)!;
-    final cmdNum = response.getDataDWord(5)!;
+    final drinkNo = response.getDataByte(0) ?? 0;
+    final localNum = response.getDataDWord(1) ?? 0;
+    final cmdNum = response.getDataDWord(5) ?? 0;
 
     return DrinkSalesCount(
-      drink: DrinkNumber.fromCode(drinkNo)!,
+      drink: DrinkNumber.fromCode(drinkNo) ?? DrinkNumber.hotDrink1,
       localSalesCount: localNum,
       commandSalesCount: cmdNum,
     );
@@ -386,7 +386,8 @@ class GS805Serial {
     final command = GS805Protocol.getMachineStatusCommand();
     final response = await _manager!.sendCommand(command);
 
-    return MachineStatus.fromCode(response.statusCode!);
+    final code = response.statusCode ?? 0;
+    return MachineStatus.fromCode(code);
   }
 
   /// Get error code
@@ -419,7 +420,7 @@ class GS805Serial {
     final command = GS805Protocol.getBalanceCommand();
     final response = await _manager!.sendCommand(command);
 
-    final balance = response.getDataByte(0)!;
+    final balance = response.getDataByte(0) ?? 0;
 
     return MachineBalance(balance: balance);
   }

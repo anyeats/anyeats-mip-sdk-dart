@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:gs805serial/gs805serial.dart';
 
@@ -45,6 +46,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
   bool _isConnected = false;
   bool _isReconnecting = false;
   String _statusMessage = 'Not connected';
+  String _appVersion = '';
   MachineStatus? _machineStatus;
   int? _balance;
   final List<String> _eventLog = [];
@@ -67,6 +69,41 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     super.initState();
     _setupStreams();
     _loadDevices();
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final result = await _uartChannel.invokeMethod('shellCommand', {
+        'command': 'dumpsys package kr.co.anyeats.gs805serial_example | grep versionName'
+      });
+      if (result != null) {
+        final info = Map<String, dynamic>.from(result as Map);
+        final stdout = (info['stdout'] as String?)?.trim() ?? '';
+        final match = RegExp(r'versionName=(\S+)').firstMatch(stdout);
+        if (match != null) {
+          setState(() => _appVersion = match.group(1)!);
+          return;
+        }
+      }
+    } catch (_) {}
+    // Fallback: read from shell
+    try {
+      final result = await _uartChannel.invokeMethod('shellCommand', {
+        'command': 'su 0 dumpsys package kr.co.anyeats.gs805serial_example | grep -E "versionCode|versionName"'
+      });
+      if (result != null) {
+        final info = Map<String, dynamic>.from(result as Map);
+        final stdout = (info['stdout'] as String?)?.trim() ?? '';
+        final nameMatch = RegExp(r'versionName=(\S+)').firstMatch(stdout);
+        final codeMatch = RegExp(r'versionCode=(\d+)').firstMatch(stdout);
+        if (nameMatch != null) {
+          final name = nameMatch.group(1)!;
+          final code = codeMatch?.group(1) ?? '';
+          setState(() => _appVersion = code.isNotEmpty ? '$name ($code)' : name);
+        }
+      }
+    } catch (_) {}
   }
 
   void _setupStreams() {
@@ -185,9 +222,11 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       final devices = await _gs805.listDevices();
       setState(() {
         _devices = devices;
-        if (devices.isNotEmpty) {
-          _selectedDevice = devices.first;
-        }
+        // Default to ttyS7 if available
+        _selectedDevice = devices.cast<SerialDevice?>().firstWhere(
+          (d) => d!.name.contains('ttyS7'),
+          orElse: () => devices.isNotEmpty ? devices.first : null,
+        );
       });
     } catch (e) {
       _showSnackBar('Failed to load devices: $e', Colors.red);
@@ -266,20 +305,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     }
   }
 
-  Future<void> _makeDrink(DrinkNumber drink) async {
-    if (!_isConnected) {
-      _showSnackBar('Not connected', Colors.orange);
-      return;
-    }
 
-    try {
-      await _gs805.makeDrink(drink);
-      _addEventLog('Making ${drink.displayName}...');
-      _showSnackBar('Making ${drink.displayName}...', Colors.blue);
-    } catch (e) {
-      _showSnackBar('Failed to make drink: $e', Colors.red);
-    }
-  }
 
   Future<void> _testCupDrop() async {
     if (!_isConnected) return;
@@ -735,9 +761,14 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: GestureDetector(
+          onTap: () {
+            Clipboard.setData(ClipboardData(text: message));
+          },
+          child: Text(message),
+        ),
         backgroundColor: color,
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
       ),
     );
   }
@@ -815,7 +846,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('GS805 Coffee Machine'),
+        title: Text('GS805 Coffee Machine${_appVersion.isNotEmpty ? '  v$_appVersion' : ''}'),
         actions: [
           if (_isReconnecting)
             const Padding(
@@ -833,44 +864,50 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       ),
       body: Column(
         children: [
-          // Connection Panel
-          _buildConnectionPanel(),
-
-          // Status Panel
-          if (_isConnected) _buildStatusPanel(),
+          // Connection Bar
+          _buildConnectionBar(),
 
           // Tabs
-          if (_isConnected)
-            Expanded(
-              child: DefaultTabController(
-                length: 5,
-                child: Column(
-                  children: [
-                    const TabBar(
-                      isScrollable: true,
-                      tabs: [
-                        Tab(text: 'Hot'),
-                        Tab(text: 'Cold'),
-                        Tab(text: 'Payment'),
-                        Tab(text: 'Maint.'),
-                        Tab(text: 'Extended'),
+          Expanded(
+            child: DefaultTabController(
+              length: _isConnected ? 8 : 2,
+              child: Column(
+                children: [
+                  TabBar(
+                    isScrollable: true,
+                    tabs: [
+                      if (_isConnected) ...[
+                        const Tab(text: 'Channel'),
+                        const Tab(text: 'Recipe'),
+                        const Tab(text: 'Payment'),
+                        const Tab(text: 'Maint.'),
+                        const Tab(text: 'Extended'),
+                        const Tab(text: 'Settings'),
                       ],
-                    ),
-                    Expanded(
-                      child: TabBarView(
-                        children: [
-                          _buildDrinkGrid(DrinkNumber.hotDrinks),
-                          _buildDrinkGrid(DrinkNumber.coldDrinks),
+                      const Tab(text: 'Debug'),
+                      const Tab(text: 'System'),
+                    ],
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        if (_isConnected) ...[
+                          _buildChannelPanel(),
+                          _buildRecipePanel(),
                           _buildPaymentPanel(),
                           _buildMaintenancePanel(),
                           _buildExtendedPanel(),
+                          _buildSettingsPanel(),
                         ],
-                      ),
+                        _buildDebugPanel(),
+                        _buildSystemPanel(),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ),
 
           // Event Log
           _buildEventLog(),
@@ -879,155 +916,366 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     );
   }
 
-  Widget _buildConnectionPanel() {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButton<SerialDevice>(
-                    value: _selectedDevice,
-                    hint: const Text('Select device'),
-                    isExpanded: true,
-                    items: _devices.map((device) {
-                      return DropdownMenuItem(
-                        value: device,
-                        child: Text(
-                          '${device.name} (VID: ${device.vendorId?.toRadixString(16) ?? 'N/A'}, '
-                          'PID: ${device.productId?.toRadixString(16) ?? 'N/A'})',
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (device) {
-                      setState(() {
-                        _selectedDevice = device;
-                      });
-                    },
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadDevices,
-                  tooltip: 'Refresh devices',
-                ),
-              ],
+  Widget _buildConnectionBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      color: _isConnected ? Colors.green[50] : Colors.grey[100],
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButton<SerialDevice>(
+              value: _selectedDevice,
+              hint: const Text('Select device'),
+              isExpanded: true,
+              isDense: true,
+              items: _devices.map((device) {
+                return DropdownMenuItem(
+                  value: device,
+                  child: Text(device.name, style: const TextStyle(fontSize: 13)),
+                );
+              }).toList(),
+              onChanged: _isConnected ? null : (device) {
+                setState(() => _selectedDevice = device);
+              },
             ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _isConnected ? null : _connect,
-                  icon: const Icon(Icons.usb),
-                  label: const Text('Connect'),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: _isConnected ? _disconnect : null,
-                  icon: const Icon(Icons.close),
-                  label: const Text('Disconnect'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[300],
+          ),
+          IconButton(
+            icon: const Icon(Icons.refresh, size: 20),
+            onPressed: _isConnected ? null : _loadDevices,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            height: 32,
+            child: _isConnected
+                ? ElevatedButton(
+                    onPressed: _disconnect,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red[300],
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    child: const Text('Disconnect', style: TextStyle(fontSize: 12)),
+                  )
+                : ElevatedButton(
+                    onPressed: _connect,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                    ),
+                    child: const Text('Connect', style: TextStyle(fontSize: 12)),
                   ),
-                ),
-                const SizedBox(width: 16),
-                if (_isConnected)
-                  IconButton(
-                    icon: const Icon(Icons.refresh),
-                    onPressed: _refreshStatus,
-                    tooltip: 'Refresh status',
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusPanel() {
-    return Card(
-      margin: const EdgeInsets.all(8.0),
-      color: _machineStatus == MachineStatus.ready
-          ? Colors.green[50]
-          : Colors.orange[50],
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
+          ),
+          if (_isConnected) ...[
+            const SizedBox(width: 8),
             Icon(
-              _machineStatus == MachineStatus.ready
-                  ? Icons.check_circle
-                  : Icons.info,
-              color: _machineStatus == MachineStatus.ready
-                  ? Colors.green
-                  : Colors.orange,
-              size: 32,
+              _machineStatus == MachineStatus.ready ? Icons.check_circle : Icons.info,
+              color: _machineStatus == MachineStatus.ready ? Colors.green : Colors.orange,
+              size: 18,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Status: $_statusMessage',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (_balance != null)
-                    Text(
-                      'Balance: $_balance tokens',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                ],
-              ),
+            const SizedBox(width: 4),
+            Text(
+              _statusMessage,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildDrinkGrid(List<DrinkNumber> drinks) {
-    return GridView.builder(
+  // ========== Channel Panel (executeChannel 0x25) ==========
+
+  Widget _buildChannelPanel() {
+    return ListView(
       padding: const EdgeInsets.all(8.0),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.5,
-        crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('executeChannel (0x25) - 직접 실행', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ),
+        _buildChannelButton('Make 1 (1번통)', '1번 채널 단독, 온수', [0], WaterType.hot),
+        const Divider(),
+        _buildChannelButton('Make 1&2 (1+2번통)', '1번→2번 배출 후 교반, 온수', [0, 1], WaterType.hot),
+        const Divider(),
+        _buildChannelButton('Make 3&2 (3+2번통)', '3번→2번 배출 후 교반, 온수', [2, 1], WaterType.hot),
+        const Divider(height: 24, thickness: 2),
+        _buildChannelButton('Make 1 Cold (1번통)', '1번 채널 단독, 냉수', [0], WaterType.cold),
+        const Divider(),
+        _buildChannelButton('Make 1&2 Cold', '1번→2번 배출 후 교반, 냉수', [0, 1], WaterType.cold),
+        const Divider(),
+        _buildChannelButton('Make 3&2 Cold', '3번→2번 배출 후 교반, 냉수', [2, 1], WaterType.cold),
+      ],
+    );
+  }
+
+  Widget _buildChannelButton(String title, String subtitle, List<int> channels, WaterType waterType) {
+    final isHot = waterType == WaterType.hot;
+    return ListTile(
+      dense: true,
+      leading: Icon(isHot ? Icons.local_cafe : Icons.local_drink, color: isHot ? Colors.red : Colors.blue),
+      title: Text(title),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+      trailing: ElevatedButton(
+        onPressed: () => _executeChannels(channels, waterType),
+        style: ElevatedButton.styleFrom(backgroundColor: isHot ? Colors.red[100] : Colors.blue[100]),
+        child: const Text('Make'),
       ),
-      itemCount: drinks.length,
-      itemBuilder: (context, index) {
-        final drink = drinks[index];
-        return ElevatedButton(
-          onPressed: () => _makeDrink(drink),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: drink.isHot ? Colors.red[100] : Colors.blue[100],
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                drink.isHot ? Icons.local_cafe : Icons.local_drink,
-                size: 32,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                drink.displayName,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
+    );
+  }
+
+  Future<void> _executeChannels(List<int> channels, WaterType waterType) async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final chNames = channels.map((c) => '${c + 1}번통').join('+');
+      for (int i = 0; i < channels.length; i++) {
+        final ch = channels[i];
+        final isLast = i == channels.length - 1;
+        _addEventLog('Executing ch$ch (${ch + 1}번통)...');
+        await _gs805.executeChannel(
+          channel: ch,
+          waterType: waterType,
+          materialDuration: 50,     // 문서 예시값: 5초
+          waterAmount: 50,          // 문서 예시값: 5초
+          materialSpeed: 0,         // 문서 예시값
+          mixSpeed: 0,              // 문서 예시값
         );
-      },
+      }
+      _showSnackBar('$chNames 실행 완료', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Failed: $e', Colors.red);
+    }
+  }
+
+  // ========== Recipe Panel (setDrinkRecipeProcess 0x1D + makeDrink 0x01) ==========
+
+  Widget _buildRecipePanel() {
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('setDrinkRecipeProcess (0x1D) + makeDrink (0x01)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+        ),
+        _buildRecipeButton('Recipe 1 (1번통)', 'hotDrink1에 1번 채널 레시피 설정 후 제조', DrinkNumber.hotDrink1, WaterType.hot, [0]),
+        const Divider(),
+        _buildRecipeButton('Recipe 1&2 (1+2번통)', 'hotDrink2에 1번→2번 레시피 설정 후 제조', DrinkNumber.hotDrink2, WaterType.hot, [0, 1]),
+        const Divider(),
+        _buildRecipeButton('Recipe 3&2 (3+2번통)', 'hotDrink3에 3번→2번 레시피 설정 후 제조', DrinkNumber.hotDrink3, WaterType.hot, [2, 1]),
+        const Divider(height: 24, thickness: 2),
+        _buildRecipeButton('Recipe 1 Cold', 'coldDrink1에 레시피 설정', DrinkNumber.coldDrink1, WaterType.cold, [0]),
+        const Divider(),
+        _buildRecipeButton('Recipe 1&2 Cold', 'coldDrink2에 레시피 설정', DrinkNumber.coldDrink2, WaterType.cold, [0, 1]),
+        const Divider(),
+        _buildRecipeButton('Recipe 3&2 Cold', 'coldDrink3에 레시피 설정', DrinkNumber.coldDrink3, WaterType.cold, [2, 1]),
+        const Divider(height: 24, thickness: 2),
+        // --- 레시피 초기화 시도 ---
+        const Padding(
+          padding: EdgeInsets.only(top: 8, bottom: 8),
+          child: Text('Recipe Clear / Modbus', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red)),
+        ),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.delete, color: Colors.red),
+          title: const Text('Clear hotDrink1 (OPT=0x00)'),
+          subtitle: const Text('빈 레시피(작업없음)로 덮어쓰기 시도'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              if (!_isConnected) return;
+              try {
+                final emptyStep = RecipeStep(
+                  operationType: RecipeOperationType.none,
+                  parameters: [],
+                );
+                _addEventLog('Clearing recipe hotDrink1 with OPT=0x00...');
+                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [emptyStep]);
+                _addEventLog('Clear sent OK');
+              } catch (e) {
+                _showSnackBar('Clear failed: $e', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
+            child: const Text('Clear'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.refresh, color: Colors.orange),
+          title: const Text('Clear → Set → Make (hotDrink1)'),
+          subtitle: const Text('초기화 후 1번통 1초 레시피 설정 → 제조'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              if (!_isConnected) return;
+              try {
+                // 1. Clear
+                _addEventLog('Step1: Clear hotDrink1...');
+                final emptyStep = RecipeStep(
+                  operationType: RecipeOperationType.none,
+                  parameters: [],
+                );
+                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [emptyStep]);
+                _addEventLog('Clear OK');
+
+                // 2. Set new recipe
+                _addEventLog('Step2: Set new recipe (ch0, MD=10)...');
+                final newStep = RecipeStep.instantChannel(
+                  channel: 0,
+                  waterType: WaterType.hot,
+                  materialDuration: 10,
+                  waterAmount: 2000,
+                  materialSpeed: 50,
+                );
+                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [newStep]);
+                _addEventLog('Set OK');
+
+                // 3. Make
+                _addEventLog('Step3: Making hotDrink1...');
+                await _gs805.makeDrink(DrinkNumber.hotDrink1);
+                _showSnackBar('Clear→Set→Make 완료', Colors.blue);
+              } catch (e) {
+                _showSnackBar('Failed: $e', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[100]),
+            child: const Text('Run'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecipeButton(String title, String subtitle, DrinkNumber drink, WaterType waterType, List<int> channels) {
+    final isHot = waterType == WaterType.hot;
+    return ListTile(
+      dense: true,
+      leading: Icon(isHot ? Icons.local_cafe : Icons.local_drink, color: isHot ? Colors.orange : Colors.cyan),
+      title: Text(title),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+      trailing: ElevatedButton(
+        onPressed: () => _setRecipeAndMake(drink, waterType, channels),
+        style: ElevatedButton.styleFrom(backgroundColor: isHot ? Colors.orange[100] : Colors.cyan[100]),
+        child: const Text('Make'),
+      ),
+    );
+  }
+
+  Future<void> _setRecipeAndMake(DrinkNumber drink, WaterType waterType, List<int> channels) async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      final steps = <RecipeStep>[];
+      for (final ch in channels) {
+        final isLast = ch == channels.last;
+        steps.add(RecipeStep.instantChannel(
+          channel: ch,
+          waterType: waterType,
+          materialDuration: 10,
+          waterAmount: isLast ? 2000 : 10,  // WD >= MD 필수
+          materialSpeed: 50,
+          mixSpeed: isLast && channels.length > 1 ? 100 : 0,
+        ));
+      }
+
+      final chNames = channels.map((c) => '${c + 1}번통').join('+');
+
+      // 디버깅: 보내는 바이트 로그
+      final cmdBytes = steps.expand((s) => s.toBytes()).toList();
+      final hexStr = cmdBytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+      _addEventLog('Recipe bytes: [${drink.code.toRadixString(16)}] $hexStr');
+
+      _addEventLog('Setting recipe: ${drink.displayName} ($chNames)...');
+      try {
+        await _gs805.setDrinkRecipeProcess(drink, steps);
+        _addEventLog('Recipe set OK (RSTA=0x00)');
+      } catch (e) {
+        _addEventLog('Recipe set FAILED: $e');
+        _showSnackBar('Recipe failed: $e', Colors.red);
+        return;
+      }
+      _addEventLog('Making ${drink.displayName}...');
+      await _gs805.makeDrink(drink);
+      _showSnackBar('$chNames 제조 시작', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Failed: $e', Colors.red);
+    }
+  }
+
+  // ========== Settings Panel ==========
+
+  Widget _buildSettingsPanel() {
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: [
+        ListTile(
+          title: const Text('Set Hot Temp (90/70)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                await _gs805.setHotTemperature(90, 70);
+                _addEventLog('Hot temp set: 70-90°C');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          title: const Text('Set Cold Temp (10/5)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                await _gs805.setColdTemperature(10, 5);
+                _addEventLog('Cold temp set: 5-10°C');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          title: const Text('Get Error Info'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final info = await _gs805.getErrorInfo();
+                _addEventLog('Error: ${info.error}, Severity: ${info.severity}');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Check'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          title: const Text('Get Controller Status'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final status = await _gs805.getControllerStatus();
+                _addEventLog('Controller: $status');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Check'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          title: const Text('Get Drink Status'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final status = await _gs805.getDrinkStatus();
+                _addEventLog('Drink status: $status');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Check'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1351,7 +1599,55 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     return ListView(
       padding: const EdgeInsets.all(8.0),
       children: [
-        // --- Existing maintenance items ---
+        // --- Front Door Control ---
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.door_front_door),
+          title: const Text('Front Door (0x1A testCmd=3)'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await _gs805.unitFunctionTest(3, 1, 0, 0);
+                    _addEventLog('Door test: open (3,1,0,0)');
+                  } catch (e) {
+                    _showSnackBar('Door failed: $e', Colors.red);
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.green[100]),
+                child: const Text('Open'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await _gs805.unitFunctionTest(3, 0, 0, 0);
+                    _addEventLog('Door test: close (3,0,0,0)');
+                  } catch (e) {
+                    _showSnackBar('Door failed: $e', Colors.red);
+                  }
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
+                child: const Text('Close'),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () async {
+                  try {
+                    await _gs805.unitFunctionTest(3, 2, 0, 0);
+                    _addEventLog('Door test: (3,2,0,0)');
+                  } catch (e) {
+                    _showSnackBar('Door failed: $e', Colors.red);
+                  }
+                },
+                child: const Text('Test'),
+              ),
+            ],
+          ),
+        ),
+        const Divider(),
         ListTile(
           leading: const Icon(Icons.coffee_maker),
           title: const Text('Test Cup Drop'),
@@ -1767,9 +2063,459 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     );
   }
 
+  // ========== Debug Panel ==========
+
+  final _uartChannel = const MethodChannel('gs805serial/uart');
+  final List<String> _debugLog = [];
+  final TextEditingController _shellCmdController = TextEditingController();
+  final TextEditingController _pidController = TextEditingController();
+
+  Future<void> _checkPortInfo(String port) async {
+    try {
+      final result = await _uartChannel.invokeMethod('portInfo', {'path': port});
+      if (result != null) {
+        final info = Map<String, dynamic>.from(result as Map);
+        setState(() {
+          _debugLog.insert(0, '--- $port ---');
+          _debugLog.insert(1, 'exists: ${info['exists']}, readable: ${info['readable']}, writable: ${info['writable']}');
+          _debugLog.insert(2, 'ls: ${info['ls'] ?? 'N/A'}');
+          _debugLog.insert(3, 'pids: ${info['pids']?.toString().trim().isEmpty == true ? 'none' : info['pids']}');
+          if (_debugLog.length > 100) _debugLog.removeRange(100, _debugLog.length);
+        });
+      } else {
+        setState(() => _debugLog.insert(0, '[$port] No result returned'));
+      }
+    } catch (e) {
+      setState(() => _debugLog.insert(0, 'portInfo error: $e'));
+    }
+  }
+
+  Future<void> _runShellCmd(String command) async {
+    if (command.isEmpty) return;
+    setState(() => _debugLog.insert(0, '[sending] \$ $command'));
+    try {
+      final result = await _uartChannel.invokeMethod('shellCommand', {'command': command}).timeout(const Duration(seconds: 10));
+      setState(() {
+        _debugLog.insert(0, '\$ $command');
+        if (result != null) {
+          final info = Map<String, dynamic>.from(result as Map);
+          final stdout = (info['stdout'] as String?)?.trim() ?? '';
+          final stderr = (info['stderr'] as String?)?.trim() ?? '';
+          if (stdout.isNotEmpty) {
+            for (final line in stdout.split('\n').reversed) {
+              _debugLog.insert(1, line);
+            }
+          }
+          if (stderr.isNotEmpty) _debugLog.insert(1, '[err] $stderr');
+        } else {
+          _debugLog.insert(1, '(no output)');
+        }
+        if (_debugLog.length > 200) _debugLog.removeRange(200, _debugLog.length);
+      });
+    } catch (e) {
+      setState(() {
+        _debugLog.insert(0, '\$ $command');
+        _debugLog.insert(1, 'ERROR: $e');
+      });
+    }
+  }
+
+  Future<void> _killPid(int pid) async {
+    try {
+      final result = await _uartChannel.invokeMethod('killProcess', {'pid': pid});
+      setState(() {
+        if (result != null) {
+          final info = Map<String, dynamic>.from(result as Map);
+          _debugLog.insert(0, 'kill -9 $pid: ${info['success'] == true ? 'SUCCESS' : 'FAILED'}');
+          final stderr = (info['stderr'] as String?)?.trim() ?? '';
+          if (stderr.isNotEmpty) _debugLog.insert(1, stderr);
+        } else {
+          _debugLog.insert(0, 'kill -9 $pid: no result');
+        }
+      });
+    } catch (e) {
+      setState(() => _debugLog.insert(0, 'Kill error: $e'));
+    }
+  }
+
+  Widget _buildDebugPanel() {
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: [
+        // Port Info
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Port Info', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final port in ['/dev/ttyS2', '/dev/ttyS6', '/dev/ttyS0', '/dev/ttyS1', '/dev/ttyS3'])
+                      ElevatedButton(
+                        onPressed: () => _checkPortInfo(port),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: (port == '/dev/ttyS2' || port == '/dev/ttyS6')
+                              ? Colors.orange[100]
+                              : null,
+                        ),
+                        child: Text(port.replaceAll('/dev/', ''), style: const TextStyle(fontSize: 12)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Kill Process
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Kill Process', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('PID: '),
+                    SizedBox(
+                      width: 100,
+                      child: TextField(
+                        controller: _pidController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          border: OutlineInputBorder(),
+                          hintText: 'PID',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () {
+                        final pid = int.tryParse(_pidController.text);
+                        if (pid != null) _killPid(pid);
+                      },
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
+                      child: const Text('Kill'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Shell Command
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Shell Command', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _shellCmdController,
+                        decoration: const InputDecoration(
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          border: OutlineInputBorder(),
+                          hintText: 'ls -la /dev/ttyS*',
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => _runShellCmd(_shellCmdController.text),
+                      child: const Text('Run'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    _shellPreset('su 0 am force-stop com.yj.coffeemachines'),
+                    _shellPreset('su 0 sh -c "timeout 15 cat /dev/ttyS7 > /data/local/tmp/ttyS7.bin &"'),
+                    _shellPreset('su 0 am start -n com.yj.coffeemachines/.MainActivity'),
+                    _shellPreset('su 0 xxd /data/local/tmp/ttyS7.bin'),
+                    _shellPreset('su 0 sh -c "echo AA55020B0C | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
+                    _shellPreset('curl -s --connect-timeout 3 http://192.168.0.140:8000/ 2>/dev/null'),
+                    _shellPreset('curl http://192.168.0.140:8000/ 2>&1'),
+                    _shellPreset('wget -q -O - http://192.168.0.140:8000/ 2>&1'),
+                    _shellPreset('ping -c 1 192.168.0.140'),
+                    _shellPreset('which curl'),
+                    _shellPreset('which wget'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Debug Log
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('Output', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    TextButton(
+                      onPressed: () {
+                        final text = _debugLog.join('\n');
+                        Clipboard.setData(ClipboardData(text: text));
+                        _showSnackBar('Copied to clipboard', Colors.green);
+                      },
+                      child: const Text('Copy'),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _debugLog.clear()),
+                      child: const Text('Clear'),
+                    ),
+                  ],
+                ),
+                Container(
+                  height: 250,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[900],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: ListView.builder(
+                    itemCount: _debugLog.length,
+                    itemBuilder: (context, index) {
+                      return Text(
+                        _debugLog[index],
+                        style: const TextStyle(fontSize: 11, fontFamily: 'monospace', color: Colors.greenAccent),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _shellPreset(String cmd) {
+    return InkWell(
+      onTap: () {
+        _shellCmdController.text = cmd;
+        _runShellCmd(cmd);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(cmd, style: const TextStyle(fontSize: 10, fontFamily: 'monospace')),
+      ),
+    );
+  }
+
+  // ========== System Panel ==========
+
+  static const _updateServerUrl = 'http://192.168.0.140:8000';
+  bool _updateAvailable = false;
+  bool _checkingUpdate = false;
+  bool _downloading = false;
+  String _systemLog = '';
+  String _apkDownloadUrl = '';
+
+  Future<void> _checkForUpdate() async {
+    setState(() {
+      _checkingUpdate = true;
+      _systemLog = 'Checking for update...';
+    });
+    try {
+      final result = await _uartChannel.invokeMethod('httpGet', {
+        'url': '$_updateServerUrl/'
+      });
+      if (result != null) {
+        final info = Map<String, dynamic>.from(result as Map);
+        final body = (info['body'] as String?)?.trim() ?? '';
+        final statusCode = info['statusCode'] ?? 0;
+        setState(() => _systemLog = 'Server responded: HTTP $statusCode');
+
+        // Find APK link - try href first, then just filename
+        final hrefMatch = RegExp(r'href="([^"]*app-debug\.apk[^"]*)"').firstMatch(body);
+        if (hrefMatch != null) {
+          final href = hrefMatch.group(1)!;
+          _apkDownloadUrl = href.startsWith('http') ? href : '$_updateServerUrl/$href';
+          setState(() {
+            _updateAvailable = true;
+            _systemLog = 'Update available: $href';
+          });
+        } else if (body.contains('app-debug.apk')) {
+          _apkDownloadUrl = '$_updateServerUrl/app-debug.apk';
+          setState(() {
+            _updateAvailable = true;
+            _systemLog = 'Update available: app-debug.apk';
+          });
+        } else {
+          setState(() {
+            _updateAvailable = false;
+            _systemLog = 'No APK found on server';
+          });
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _systemLog = 'Server unreachable: $e';
+        _updateAvailable = false;
+      });
+    } finally {
+      setState(() => _checkingUpdate = false);
+    }
+  }
+
+  Future<void> _downloadAndInstall() async {
+    setState(() {
+      _downloading = true;
+      _systemLog = 'Downloading from $_apkDownloadUrl ...';
+    });
+    try {
+      final savePath = '/sdcard/Download/update.apk';
+
+      // Download APK via native HTTP
+      final dlResult = await _uartChannel.invokeMethod('httpDownload', {
+        'url': _apkDownloadUrl,
+        'savePath': savePath,
+      });
+      if (dlResult != null) {
+        final info = Map<String, dynamic>.from(dlResult as Map);
+        final size = info['size'] ?? 0;
+        setState(() => _systemLog = 'Downloaded ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+      }
+
+      setState(() => _systemLog = 'Download complete. Ready to install.');
+
+      if (!mounted) return;
+      // Show dialog BEFORE install (pm install kills the app)
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Update Downloaded'),
+          content: const Text('Install and restart now?\n\nThe app will close and reopen automatically.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Later'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                setState(() => _systemLog = 'Installing...');
+                // Install only - user reopens manually
+                final installResult = await _uartChannel.invokeMethod('shellCommand', {
+                  'command': 'su 0 pm install -r -d $savePath 2>&1'
+                });
+                if (installResult != null) {
+                  final info = Map<String, dynamic>.from(installResult as Map);
+                  final output = ((info['stdout'] as String?) ?? '').trim();
+                  if (output.contains('Success')) {
+                    setState(() => _systemLog = 'Install complete!\nPlease reopen the app.');
+                  } else {
+                    setState(() => _systemLog = 'Install result: $output');
+                  }
+                }
+              },
+              child: const Text('Install & Restart'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      setState(() => _systemLog = 'Update failed: $e');
+    } finally {
+      setState(() => _downloading = false);
+    }
+  }
+
+  Widget _buildSystemPanel() {
+    return ListView(
+      padding: const EdgeInsets.all(8.0),
+      children: [
+        // Auto Update
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('App Update', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text('Server: $_updateServerUrl', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    ElevatedButton(
+                      onPressed: _checkingUpdate ? null : _checkForUpdate,
+                      child: _checkingUpdate
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Check Update'),
+                    ),
+                    const SizedBox(width: 12),
+                    if (_updateAvailable)
+                      ElevatedButton(
+                        onPressed: _downloading ? null : _downloadAndInstall,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green[100]),
+                        child: _downloading
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Update Now'),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (_systemLog.isNotEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[100],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(_systemLog, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  bool _eventLogExpanded = true;
+
   Widget _buildEventLog() {
     return Container(
-      height: 150,
+      height: _eventLogExpanded ? 150 : 30,
       decoration: BoxDecoration(
         color: Colors.grey[100],
         border: Border(
@@ -1779,50 +2525,64 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                const Text(
-                  'Event Log',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const Spacer(),
-                TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _eventLog.clear();
-                    });
-                  },
-                  child: const Text('Clear'),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              reverse: false,
-              itemCount: _eventLog.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8.0,
-                    vertical: 2.0,
+          GestureDetector(
+            onTap: () => setState(() => _eventLogExpanded = !_eventLogExpanded),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+              child: Row(
+                children: [
+                  Icon(
+                    _eventLogExpanded ? Icons.expand_more : Icons.expand_less,
+                    size: 18,
                   ),
-                  child: Text(
-                    _eventLog[index],
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      color: _eventLog[index].contains('[MDB]')
-                          ? Colors.indigo
-                          : Colors.black87,
+                  const Text(
+                    'Event Log',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  const Spacer(),
+                  if (_eventLogExpanded) ...[
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: _eventLog.join('\n')));
+                        _showSnackBar('Event log copied', Colors.green);
+                      },
+                      child: const Text('Copy', style: TextStyle(fontSize: 12, color: Colors.blue)),
                     ),
-                  ),
-                );
-              },
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () => setState(() => _eventLog.clear()),
+                      child: const Text('Clear', style: TextStyle(fontSize: 12, color: Colors.blue)),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
+          if (_eventLogExpanded)
+            Expanded(
+              child: ListView.builder(
+                reverse: false,
+                itemCount: _eventLog.length,
+                itemBuilder: (context, index) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8.0,
+                      vertical: 2.0,
+                    ),
+                    child: Text(
+                      _eventLog[index],
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                        color: _eventLog[index].contains('[MDB]')
+                            ? Colors.indigo
+                            : Colors.black87,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
       ),
     );

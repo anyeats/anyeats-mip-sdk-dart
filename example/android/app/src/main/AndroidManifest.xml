@@ -1,11 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- USB Host permission -->
     <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:label="gs805serial_example"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

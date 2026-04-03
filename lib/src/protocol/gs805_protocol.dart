@@ -432,7 +432,6 @@ class GS805Protocol {
         (subMaterialDuration >> 8) & 0xFF, subMaterialDuration & 0xFF,
         subMaterialSpeed & 0xFF,
         endWaitTime & 0xFF,
-        removeParamLimits ? 0x01 : 0x00,
       ]),
     );
   }
