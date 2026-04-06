@@ -637,15 +637,18 @@ class GS805Serial {
     final command = GS805Protocol.getControllerStatusCommand();
     final response = await _manager!.sendCommand(command);
 
-    // Response DATA: STA + ST_INFO(4bytes) + DrinkNo
-    // getDataByte skips STA, so index 0 = first byte of ST_INFO
+    // Response DATA: ST_INFO(4bytes) + optional DrinkNo(1)
+    // 0x1E response has NO STA byte
     final data = response.data;
-    // data[0] = STA, data[1..4] = ST_INFO, data[5] = DrinkNo
-    if (data.length < 6) {
-      throw GS805Exception('Invalid controller status response: insufficient data');
+    if (data.length < 4) {
+      throw GS805Exception('Invalid controller status response: insufficient data (${data.length} bytes)');
     }
 
-    return ControllerStatus.fromBytes(data.sublist(1));
+    final drinkNo = data.length >= 5 ? data[4] : 0;
+    return ControllerStatus(
+      rawValue: (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3],
+      drinkNumber: drinkNo,
+    );
   }
 
   /// Query drink preparation status (R series)
@@ -657,13 +660,14 @@ class GS805Serial {
     final command = GS805Protocol.getDrinkStatusCommand();
     final response = await _manager!.sendCommand(command);
 
-    // Response DATA: STA + DK_INFO(4bytes)
+    // Response DATA: DK_INFO(4bytes)
+    // 0x1F response has NO STA byte
     final data = response.data;
-    if (data.length < 5) {
-      throw GS805Exception('Invalid drink status response: insufficient data');
+    if (data.length < 4) {
+      throw GS805Exception('Invalid drink status response: insufficient data (${data.length} bytes)');
     }
 
-    return DrinkPreparationStatus.fromBytes(data.sublist(1));
+    return DrinkPreparationStatus.fromBytes(data);
   }
 
   /// Query object exception information (R series)

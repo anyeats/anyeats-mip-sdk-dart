@@ -23,8 +23,11 @@ import '../exceptions/gs805_exception.dart';
 /// await uart.write(Uint8List.fromList([0x02, 0x30, 0x03]));
 /// ```
 class UartSerialConnection implements SerialConnection {
-  static const _methodChannel = MethodChannel('gs805serial/uart');
-  static const _eventChannel = EventChannel('gs805serial/uart_input');
+  static int _instanceCounter = 0;
+
+  final int _instanceId;
+  late final MethodChannel _methodChannel;
+  late final EventChannel _eventChannel;
 
   SerialDevice? _device;
   SerialConfig? _config;
@@ -37,7 +40,12 @@ class UartSerialConnection implements SerialConnection {
   StreamSubscription<dynamic>? _eventSubscription;
 
   /// Create a UART serial connection.
-  UartSerialConnection();
+  /// Each instance gets unique channel IDs to support multiple simultaneous ports.
+  UartSerialConnection() : _instanceId = _instanceCounter++ {
+    final suffix = _instanceId == 0 ? '' : '_$_instanceId';
+    _methodChannel = MethodChannel('gs805serial/uart$suffix');
+    _eventChannel = EventChannel('gs805serial/uart_input$suffix');
+  }
 
   @override
   Future<List<SerialDevice>> listDevices() async {

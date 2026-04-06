@@ -16,7 +16,7 @@ import java.util.concurrent.Executors
  * Handles MethodChannel calls for connect/disconnect/write/listDevices,
  * and provides an EventChannel for streaming incoming serial data.
  */
-class UartMethodChannelHandler(messenger: BinaryMessenger) :
+class UartMethodChannelHandler(messenger: BinaryMessenger, suffix: String = "") :
     MethodChannel.MethodCallHandler,
     EventChannel.StreamHandler {
 
@@ -38,8 +38,8 @@ class UartMethodChannelHandler(messenger: BinaryMessenger) :
         private const val READ_BUFFER_SIZE = 1024
     }
 
-    private val methodChannel = MethodChannel(messenger, METHOD_CHANNEL)
-    private val eventChannel = EventChannel(messenger, EVENT_CHANNEL)
+    private val methodChannel = MethodChannel(messenger, "$METHOD_CHANNEL$suffix")
+    private val eventChannel = EventChannel(messenger, "$EVENT_CHANNEL$suffix")
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private var serialPort: SerialPort? = null

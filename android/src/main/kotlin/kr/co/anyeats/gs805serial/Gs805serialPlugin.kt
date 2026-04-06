@@ -16,13 +16,15 @@ class Gs805serialPlugin :
     // when the Flutter Engine is detached from the Activity
     private lateinit var channel: MethodChannel
     private var uartHandler: UartMethodChannelHandler? = null
+    private var uartHandler2: UartMethodChannelHandler? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "gs805serial")
         channel.setMethodCallHandler(this)
 
-        // Register UART serial port handler
+        // Register UART serial port handlers (2 ports: GS805 + MDB)
         uartHandler = UartMethodChannelHandler(flutterPluginBinding.binaryMessenger)
+        uartHandler2 = UartMethodChannelHandler(flutterPluginBinding.binaryMessenger, suffix = "_1")
     }
 
     override fun onMethodCall(
@@ -40,5 +42,7 @@ class Gs805serialPlugin :
         channel.setMethodCallHandler(null)
         uartHandler?.dispose()
         uartHandler = null
+        uartHandler2?.dispose()
+        uartHandler2 = null
     }
 }

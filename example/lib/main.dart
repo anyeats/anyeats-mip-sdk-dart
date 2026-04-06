@@ -69,6 +69,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     super.initState();
     _setupStreams();
     _loadDevices();
+    _loadMdbDevices();
     _loadAppVersion();
   }
 
@@ -238,9 +239,11 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       final devices = await _mdbCashless.listDevices();
       setState(() {
         _mdbDevices = devices;
-        if (devices.isNotEmpty && _selectedMdbDevice == null) {
-          _selectedMdbDevice = devices.first;
-        }
+        // Default to ttyS9 (Payment Serial Port)
+        _selectedMdbDevice = devices.cast<SerialDevice?>().firstWhere(
+          (d) => d!.name.contains('ttyS9'),
+          orElse: () => devices.isNotEmpty ? devices.first : null,
+        );
       });
     } catch (e) {
       _showSnackBar('Failed to load MDB devices: $e', Colors.red);
@@ -1147,6 +1150,61 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
         // --- 검증 테스트 ---
         const Padding(
           padding: EdgeInsets.only(top: 8, bottom: 8),
+          child: Text('Step-by-Step Test', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
+        ),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.upload, color: Colors.purple),
+          title: const Text('Set Only (저장만)'),
+          subtitle: const Text('cupDispense(0) + instantChannel(ch0, MD=10, WD=2000)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              if (!_isConnected) return;
+              try {
+                final steps = [
+                  RecipeStep.cupDispense(dispenser: 0),
+                  RecipeStep.instantChannel(
+                    channel: 0,
+                    waterType: WaterType.hot,
+                    materialDuration: 10,
+                    waterAmount: 2000,
+                    materialSpeed: 50,
+                  ),
+                ];
+                _addEventLog('Set recipe only (no make)...');
+                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, steps);
+                _addEventLog('Set OK. Wait then press Make.');
+              } catch (e) {
+                _showSnackBar('Set failed: $e', Colors.red);
+              }
+            },
+            child: const Text('Set'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.play_arrow, color: Colors.green),
+          title: const Text('Make Only (제조만)'),
+          subtitle: const Text('hotDrink1 제조. Set 후 원하는 만큼 대기 후 실행'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              if (!_isConnected) return;
+              try {
+                _addEventLog('Making hotDrink1...');
+                await _gs805.makeDrink(DrinkNumber.hotDrink1);
+                _addEventLog('Make OK');
+              } catch (e) {
+                _showSnackBar('Make failed: $e', Colors.red);
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[100]),
+            child: const Text('Make'),
+          ),
+        ),
+        const Divider(),
+        const Padding(
+          padding: EdgeInsets.only(top: 8, bottom: 8),
           child: Text('Verify Tests', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
         ),
         ListTile(
@@ -1201,7 +1259,9 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       return;
     }
     try {
-      final steps = <RecipeStep>[];
+      final steps = <RecipeStep>[
+        RecipeStep.cupDispense(dispenser: 0), // 수동 컵 배치 대기
+      ];
       for (final ch in channels) {
         final isLast = ch == channels.last;
         steps.add(RecipeStep.instantChannel(
@@ -1244,13 +1304,130 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     return ListView(
       padding: const EdgeInsets.all(8.0),
       children: [
+        // --- Status Queries ---
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('Status Queries', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
+        ),
         ListTile(
+          dense: true,
+          leading: const Icon(Icons.monitor_heart, color: Colors.green),
+          title: const Text('Machine Status (0x0B)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final status = await _gs805.getMachineStatus();
+                _addEventLog('[0x0B] code: 0x${status.code.toRadixString(16)} | ${status.message}');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.error_outline, color: Colors.orange),
+          title: const Text('Error Code (0x0C)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final error = await _gs805.getErrorCode();
+                _addEventLog('[0x0C] errorCode: 0x${error.errorCode.toRadixString(16)} (${error.errorCode})');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.info_outline, color: Colors.orange),
+          title: const Text('Error Info (상세)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final info = await _gs805.getErrorInfo();
+                _addEventLog('[ErrorInfo] error: ${info.error}');
+                _addEventLog('  severity: ${info.severity}');
+                _addEventLog('  actions: ${info.recoveryActions.join(", ")}');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.dashboard, color: Colors.blue),
+          title: const Text('Controller Status (0x1E)'),
+          subtitle: const Text('32비트 상세 상태'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final s = await _gs805.getControllerStatus();
+                _addEventLog('[0x1E] overall: ${s.overallStatus}');
+                _addEventLog('  frontDoor: ${s.isFrontDoorOffline ? "OFFLINE" : "online"}');
+                _addEventLog('  iceMaker: ${s.isIceOffline ? "OFFLINE" : "online"}');
+                _addEventLog('  grinder: ${s.isGrindingOffline ? "OFFLINE" : "online"}');
+                _addEventLog('  cup: ${s.hasNoCup ? "NO CUP" : "present"}');
+                _addEventLog('  waterLow: ${s.isWaterTankLow}');
+                _addEventLog('  wasteWarning: ${s.isWasteTankWarning}');
+                _addEventLog('  rawBits: 0x${s.rawValue.toRadixString(16).padLeft(8, '0')}');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.local_cafe, color: Colors.brown),
+          title: const Text('Drink Status (0x1F)'),
+          subtitle: const Text('음료 제작 진행 상태'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final s = await _gs805.getDrinkStatus();
+                _addEventLog('[0x1F] result: ${s.result}');
+                _addEventLog('  drinkNo: ${s.drinkNumber}');
+                _addEventLog('  progress: step ${s.currentStep}/${s.totalSteps}');
+                _addEventLog('  failCause: ${s.failureCause}');
+                _addEventLog('  rawBits: 0x${s.rawValue.toRadixString(16).padLeft(8, '0')}');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Query'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.account_balance_wallet, color: Colors.teal),
+          title: const Text('Balance (0x0F)'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              try {
+                final b = await _gs805.getBalance();
+                _addEventLog('[0x0F] balance: ${b.balance} tokens');
+              } catch (e) { _showSnackBar('$e', Colors.red); }
+            },
+            child: const Text('Query'),
+          ),
+        ),
+
+        // --- Temperature ---
+        const Divider(height: 24, thickness: 2),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('Temperature', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
+        ),
+        ListTile(
+          dense: true,
           title: const Text('Set Hot Temp (65/60)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
                 await _gs805.setHotTemperature(65, 60);
-                _addEventLog('Hot temp set: 70-90°C');
+                _addEventLog('Hot temp set: upper=65, lower=60');
               } catch (e) { _showSnackBar('$e', Colors.red); }
             },
             child: const Text('Set'),
@@ -1258,54 +1435,16 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
         ),
         const Divider(),
         ListTile(
+          dense: true,
           title: const Text('Set Cold Temp (10/5)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
                 await _gs805.setColdTemperature(10, 5);
-                _addEventLog('Cold temp set: 5-10°C');
+                _addEventLog('Cold temp set: upper=10, lower=5');
               } catch (e) { _showSnackBar('$e', Colors.red); }
             },
             child: const Text('Set'),
-          ),
-        ),
-        const Divider(),
-        ListTile(
-          title: const Text('Get Error Info'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              try {
-                final info = await _gs805.getErrorInfo();
-                _addEventLog('Error: ${info.error}, Severity: ${info.severity}');
-              } catch (e) { _showSnackBar('$e', Colors.red); }
-            },
-            child: const Text('Check'),
-          ),
-        ),
-        const Divider(),
-        ListTile(
-          title: const Text('Get Controller Status'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              try {
-                final status = await _gs805.getControllerStatus();
-                _addEventLog('Controller: $status');
-              } catch (e) { _showSnackBar('$e', Colors.red); }
-            },
-            child: const Text('Check'),
-          ),
-        ),
-        const Divider(),
-        ListTile(
-          title: const Text('Get Drink Status'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              try {
-                final status = await _gs805.getDrinkStatus();
-                _addEventLog('Drink status: $status');
-              } catch (e) { _showSnackBar('$e', Colors.red); }
-            },
-            child: const Text('Check'),
           ),
         ),
       ],
@@ -2288,6 +2427,10 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                     _shellPreset('su 0 sh -c "timeout 15 cat /dev/ttyS7 > /data/local/tmp/ttyS7.bin &"'),
                     _shellPreset('su 0 am start -n com.yj.coffeemachines/.MainActivity'),
                     _shellPreset('su 0 xxd /data/local/tmp/ttyS7.bin'),
+                    _shellPreset('su 0 sh -c "strace -p \$(pidof com.yj.coffeemachines) -e write -s 256 -x 2>/data/local/tmp/strace.log &"'),
+                    _shellPreset('su 0 sh -c "cat /data/local/tmp/strace.log | grep ttyS7 | tail -30"'),
+                    _shellPreset('su 0 sh -c "cat /data/local/tmp/strace.log | grep -i aa55 | tail -20"'),
+                    _shellPreset('su 0 sh -c "cat /data/local/tmp/strace.log | tail -50"'),
                     _shellPreset('su 0 sh -c "echo AA55020B0C | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
                     _shellPreset('su 0 sh -c "echo AA55121D01010D010000320032 0000FF00000000A1 | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
                     _shellPreset('curl -s --connect-timeout 3 http://192.168.0.140:8000/ 2>/dev/null'),
