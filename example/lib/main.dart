@@ -391,9 +391,9 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       return;
     }
     try {
-      await _gs805.setHotTemperature(90, 70);
-      _addEventLog('Hot temp set: upper=90, lower=70');
-      _showSnackBar('Hot temperature set (90/70)', Colors.green);
+      await _gs805.setHotTemperature(65, 60);
+      _addEventLog('Hot temp set: upper=65, lower=60');
+      _showSnackBar('Hot temperature set (65/60)', Colors.green);
     } catch (e) {
       _showSnackBar('Set hot temp failed: $e', Colors.red);
     }
@@ -1143,6 +1143,39 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
             child: const Text('Run'),
           ),
         ),
+        const Divider(),
+        // --- 검증 테스트 ---
+        const Padding(
+          padding: EdgeInsets.only(top: 8, bottom: 8),
+          child: Text('Verify Tests', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
+        ),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.check_circle, color: Colors.indigo),
+          title: const Text('Clear 후 Make (삭제 검증)'),
+          subtitle: const Text('Clear → makeDrink. 0x6 나오면 삭제 성공'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              if (!_isConnected) return;
+              try {
+                _addEventLog('Clear hotDrink1...');
+                final emptyStep = RecipeStep(
+                  operationType: RecipeOperationType.none,
+                  parameters: [],
+                );
+                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [emptyStep]);
+                _addEventLog('Clear OK. Now making...');
+                await _gs805.makeDrink(DrinkNumber.hotDrink1);
+                _addEventLog('Make OK (레시피 아직 남아있음)');
+              } catch (e) {
+                _addEventLog('Make result: $e');
+                _showSnackBar('$e', Colors.orange);
+              }
+            },
+            child: const Text('Test'),
+          ),
+        ),
+        const Divider(),
       ],
     );
   }
@@ -1212,11 +1245,11 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       padding: const EdgeInsets.all(8.0),
       children: [
         ListTile(
-          title: const Text('Set Hot Temp (90/70)'),
+          title: const Text('Set Hot Temp (65/60)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
-                await _gs805.setHotTemperature(90, 70);
+                await _gs805.setHotTemperature(65, 60);
                 _addEventLog('Hot temp set: 70-90°C');
               } catch (e) { _showSnackBar('$e', Colors.red); }
             },
@@ -1760,7 +1793,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
         ListTile(
           leading: const Icon(Icons.thermostat, color: Colors.red),
           title: const Text('Set Hot Temperature'),
-          subtitle: const Text('Upper: 90, Lower: 70'),
+          subtitle: const Text('Upper: 65, Lower: 60'),
           trailing: ElevatedButton(
             onPressed: _setHotTemperature,
             style: ElevatedButton.styleFrom(
@@ -2256,6 +2289,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                     _shellPreset('su 0 am start -n com.yj.coffeemachines/.MainActivity'),
                     _shellPreset('su 0 xxd /data/local/tmp/ttyS7.bin'),
                     _shellPreset('su 0 sh -c "echo AA55020B0C | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
+                    _shellPreset('su 0 sh -c "echo AA55121D01010D010000320032 0000FF00000000A1 | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
                     _shellPreset('curl -s --connect-timeout 3 http://192.168.0.140:8000/ 2>/dev/null'),
                     _shellPreset('curl http://192.168.0.140:8000/ 2>&1'),
                     _shellPreset('wget -q -O - http://192.168.0.140:8000/ 2>&1'),
