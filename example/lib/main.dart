@@ -1074,168 +1074,102 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
         const Divider(),
         _buildRecipeButton('Recipe 3&2 Cold', 'coldDrink3에 레시피 설정', DrinkNumber.coldDrink3, WaterType.cold, [2, 1]),
         const Divider(height: 24, thickness: 2),
-        // --- 레시피 초기화 시도 ---
-        const Padding(
-          padding: EdgeInsets.only(top: 8, bottom: 8),
-          child: Text('Recipe Clear / Modbus', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.red)),
-        ),
+        // --- 0x15 레시피 시간 설정 ---
         ListTile(
           dense: true,
-          leading: const Icon(Icons.delete, color: Colors.red),
-          title: const Text('Clear hotDrink1 (OPT=0x00)'),
-          subtitle: const Text('빈 레시피(작업없음)로 덮어쓰기 시도'),
+          leading: const Icon(Icons.timer, color: Colors.teal),
+          title: const Text('0x15 레시피 시간 설정 → Make'),
+          subtitle: const Text('ch1: 재료1초, ch2: 물20초'),
           trailing: ElevatedButton(
             onPressed: () async {
               if (!_isConnected) return;
               try {
-                final emptyStep = RecipeStep(
-                  operationType: RecipeOperationType.none,
-                  parameters: [],
-                );
-                _addEventLog('Clearing recipe hotDrink1 with OPT=0x00...');
-                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [emptyStep]);
-                _addEventLog('Clear sent OK');
-              } catch (e) {
-                _showSnackBar('Clear failed: $e', Colors.red);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
-            child: const Text('Clear'),
-          ),
-        ),
-        const Divider(),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.refresh, color: Colors.orange),
-          title: const Text('Clear → Set → Make (hotDrink1)'),
-          subtitle: const Text('초기화 후 1번통 1초 레시피 설정 → 제조'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              if (!_isConnected) return;
-              try {
-                // 1. Clear
-                _addEventLog('Step1: Clear hotDrink1...');
-                final emptyStep = RecipeStep(
-                  operationType: RecipeOperationType.none,
-                  parameters: [],
-                );
-                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [emptyStep]);
-                _addEventLog('Clear OK');
-
-                // 2. Set new recipe
-                _addEventLog('Step2: Set new recipe (ch0, MD=10)...');
-                final newStep = RecipeStep.instantChannel(
-                  channel: 0,
-                  waterType: WaterType.hot,
-                  materialDuration: 10,
-                  waterAmount: 2000,
-                  materialSpeed: 50,
-                );
-                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [newStep]);
-                _addEventLog('Set OK');
-
-                // 3. Make
-                _addEventLog('Step3: Making hotDrink1...');
+                // ch1~8: (material, water) in 0.1s units
+                final times = <(int, int)>[
+                  (10, 0),      // ch1: 재료만 1초
+                  (0, 200),     // ch2: 물만 20초
+                  (0, 0),       // ch3
+                  (0, 0),       // ch4
+                  (0, 0),       // ch5
+                  (0, 0),       // ch6
+                  (0, 0),       // ch7
+                  (0, 0),       // ch8
+                ];
+                _addEventLog('0x15: ch1(mat=10) ch2(wat=200)...');
+                await _gs805.setDrinkRecipeTime(DrinkNumber.hotDrink1, times);
+                _addEventLog('0x15 OK. Making...');
                 await _gs805.makeDrink(DrinkNumber.hotDrink1);
-                _showSnackBar('Clear→Set→Make 완료', Colors.blue);
+                _showSnackBar('0x15 → Make 완료', Colors.blue);
               } catch (e) {
                 _showSnackBar('Failed: $e', Colors.red);
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange[100]),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal[100]),
             child: const Text('Run'),
           ),
         ),
-        const Divider(),
-        // --- 검증 테스트 ---
+        const Divider(height: 24, thickness: 2),
         const Padding(
-          padding: EdgeInsets.only(top: 8, bottom: 8),
-          child: Text('Step-by-Step Test', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('채널 조합 테스트', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.brown)),
         ),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.upload, color: Colors.purple),
-          title: const Text('Set Only (저장만)'),
-          subtitle: const Text('cupDispense(0) + instantChannel(ch0, MD=10, WD=2000)'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              if (!_isConnected) return;
-              try {
-                final steps = [
-                  RecipeStep.cupDispense(dispenser: 0),
-                  RecipeStep.instantChannel(
-                    channel: 0,
-                    waterType: WaterType.hot,
-                    materialDuration: 10,
-                    waterAmount: 2000,
-                    materialSpeed: 50,
-                  ),
-                ];
-                _addEventLog('Set recipe only (no make)...');
-                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, steps);
-                _addEventLog('Set OK. Wait then press Make.');
-              } catch (e) {
-                _showSnackBar('Set failed: $e', Colors.red);
-              }
-            },
-            child: const Text('Set'),
-          ),
-        ),
-        const Divider(),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.play_arrow, color: Colors.green),
-          title: const Text('Make Only (제조만)'),
-          subtitle: const Text('hotDrink1 제조. Set 후 원하는 만큼 대기 후 실행'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              if (!_isConnected) return;
-              try {
-                _addEventLog('Making hotDrink1...');
-                await _gs805.makeDrink(DrinkNumber.hotDrink1);
-                _addEventLog('Make OK');
-              } catch (e) {
-                _showSnackBar('Make failed: $e', Colors.red);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[100]),
-            child: const Text('Make'),
-          ),
-        ),
-        const Divider(),
+        _build015Test('ch1 물만', [(0,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch2 물만', [(0,0),(0,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch3 물만', [(0,0),(0,0),(0,100),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1재료 + ch1물', [(10,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1재료 + ch2물', [(10,0),(0,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1재료 + ch3물', [(10,0),(0,0),(0,100),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1,ch3재료 + ch2물', [(10,0),(0,100),(10,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1,ch3재료 + ch4물', [(10,0),(0,0),(10,0),(0,100),(0,0),(0,0),(0,0),(0,0)]),
+        // ch1=물 + 다른채널=재료 테스트
+        _build015Test('ch1물 + ch2재료', [(0,100),(10,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1물 + ch3재료', [(0,100),(0,0),(10,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1물 + ch4재료', [(0,100),(0,0),(0,0),(10,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1물 + ch3,ch4재료', [(0,100),(0,0),(10,0),(10,0),(0,0),(0,0),(0,0),(0,0)]),
+        // 1번통(ch1) 재료+물 테스트: 원래 값 유지 시도
+        const Divider(height: 24, thickness: 2),
         const Padding(
-          padding: EdgeInsets.only(top: 8, bottom: 8),
-          child: Text('Verify Tests', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.indigo)),
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('1번통 재료+물 테스트', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
         ),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.check_circle, color: Colors.indigo),
-          title: const Text('Clear 후 Make (삭제 검증)'),
-          subtitle: const Text('Clear → makeDrink. 0x6 나오면 삭제 성공'),
-          trailing: ElevatedButton(
-            onPressed: () async {
-              if (!_isConnected) return;
-              try {
-                _addEventLog('Clear hotDrink1...');
-                final emptyStep = RecipeStep(
-                  operationType: RecipeOperationType.none,
-                  parameters: [],
-                );
-                await _gs805.setDrinkRecipeProcess(DrinkNumber.hotDrink1, [emptyStep]);
-                _addEventLog('Clear OK. Now making...');
-                await _gs805.makeDrink(DrinkNumber.hotDrink1);
-                _addEventLog('Make OK (레시피 아직 남아있음)');
-              } catch (e) {
-                _addEventLog('Make result: $e');
-                _showSnackBar('$e', Colors.orange);
-              }
-            },
-            child: const Text('Test'),
-          ),
+        _build015Test('ch1(재료10,물100)', [(10,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1재료10만 (VendApp복구후)', [(10,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('ch1물100만 (VendApp복구후)', [(0,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)]),
+        _build015Test('전체1: ch1(10,100)나머지(1,1)', [(10,100),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1),(1,1)]),
+        // --- 냉음료 (coldDrink1) 테스트 ---
+        const Divider(height: 24, thickness: 2),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('냉음료 테스트 (coldDrink1)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue)),
         ),
-        const Divider(),
+        _build015Test('Cold: ch1물100만', [(0,100),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)], drink: DrinkNumber.coldDrink1),
+        _build015Test('Cold: ch1재료10만', [(10,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)], drink: DrinkNumber.coldDrink1),
+        _build015Test('Cold: ch1물 + ch2재료', [(0,100),(10,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)], drink: DrinkNumber.coldDrink1),
+        _build015Test('Cold: ch1물 + ch3재료', [(0,100),(0,0),(10,0),(0,0),(0,0),(0,0),(0,0),(0,0)], drink: DrinkNumber.coldDrink1),
+        _build015Test('Cold: ch1물 + ch2,ch3재료', [(0,100),(10,0),(10,0),(0,0),(0,0),(0,0),(0,0),(0,0)], drink: DrinkNumber.coldDrink1),
       ],
     );
+  }
+
+    Widget _build015Test(String label, List<(int, int)> times, {DrinkNumber drink = DrinkNumber.hotDrink1}) {
+      return ListTile(
+        dense: true,
+        leading: Icon(Icons.science, color: drink.isHot ? Colors.brown : Colors.blue),
+        title: Text(label),
+        trailing: ElevatedButton(
+          onPressed: () async {
+            if (!_isConnected) return;
+            try {
+              _addEventLog('0x15: $label (${drink.displayName})');
+              await _gs805.setDrinkRecipeTime(drink, times);
+              await _gs805.makeDrink(drink);
+            } catch (e) {
+              _showSnackBar('Failed: $e', Colors.red);
+            }
+          },
+          child: const Text('Run'),
+        ),
+      );
   }
 
   Widget _buildRecipeButton(String title, String subtitle, DrinkNumber drink, WaterType waterType, List<int> channels) {
@@ -1782,8 +1716,8 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
               ElevatedButton(
                 onPressed: () async {
                   try {
-                    await _gs805.unitFunctionTest(3, 1, 0, 0);
-                    _addEventLog('Door test: open (3,1,0,0)');
+                    await _gs805.unitFunctionTest(3, 4, 0, 0);
+                    _addEventLog('Door: open (cmd=3, data1=4, data2=0)');
                   } catch (e) {
                     _showSnackBar('Door failed: $e', Colors.red);
                   }
@@ -1795,26 +1729,14 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
               ElevatedButton(
                 onPressed: () async {
                   try {
-                    await _gs805.unitFunctionTest(3, 0, 0, 0);
-                    _addEventLog('Door test: close (3,0,0,0)');
+                    await _gs805.unitFunctionTest(3, 4, 1, 0);
+                    _addEventLog('Door: close (cmd=3, data1=4, data2=1)');
                   } catch (e) {
                     _showSnackBar('Door failed: $e', Colors.red);
                   }
                 },
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
                 child: const Text('Close'),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () async {
-                  try {
-                    await _gs805.unitFunctionTest(3, 2, 0, 0);
-                    _addEventLog('Door test: (3,2,0,0)');
-                  } catch (e) {
-                    _showSnackBar('Door failed: $e', Colors.red);
-                  }
-                },
-                child: const Text('Test'),
               ),
             ],
           ),

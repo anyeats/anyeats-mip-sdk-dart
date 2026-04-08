@@ -64,6 +64,9 @@ class CommandCodes {
   /// 0x12: Clean specified instant formula pipeline
   static const int cleanSpecificPipe = 0x12;
 
+  /// 0x15: Set drink recipe water/material time (Series 2,3,R)
+  static const int setDrinkRecipeTime = 0x15;
+
   /// 0x1A: Unit function test (3,R series)
   static const int unitFunctionTest = 0x1A;
 

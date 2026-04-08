@@ -271,6 +271,38 @@ class GS805Protocol {
     return CommandMessage.withByte(CommandCodes.cleanSpecificPipe, pipeNumber);
   }
 
+  /// Create a command to set drink recipe time (0x15, Series 3 format)
+  ///
+  /// Sets material duration and water amount for each channel (1-8).
+  /// Series 3 channel order: 2, 1, 3, 4, 5, 6, 7, 8
+  ///
+  /// [drinkNumber] - Drink number (0x01-0x07 hot, 0x11-0x17 cold)
+  /// [channelTimes] - List of 8 (materialDuration, waterAmount) pairs in channel order 1-8.
+  ///                   Each value in 0.1s units (0-999). 0 = no output.
+  static CommandMessage setDrinkRecipeTimeCommand(
+    int drinkNumber,
+    List<(int material, int water)> channelTimes,
+  ) {
+    if (!DrinkNumbers.isValid(drinkNumber)) {
+      throw ArgumentError('Invalid drink number: 0x${drinkNumber.toRadixString(16)}');
+    }
+    if (channelTimes.length != 8) {
+      throw ArgumentError('Must provide exactly 8 channel times, got ${channelTimes.length}');
+    }
+
+    // 순차 전송 (재배열 없음)
+    final data = <int>[drinkNumber];
+    for (final (mat, wat) in channelTimes) {
+      data.addAll([(mat >> 8) & 0xFF, mat & 0xFF]);
+      data.addAll([(wat >> 8) & 0xFF, wat & 0xFF]);
+    }
+
+    return CommandMessage(
+      command: CommandCodes.setDrinkRecipeTime,
+      data: Uint8List.fromList(data),
+    );
+  }
+
   /// Create a command to set drink recipe process (0x1D)
   /// [drinkNumber] - Drink number (0x01-0x07 hot, 0x11-0x17 cold)
   /// [steps] - List of recipe steps (max 32)

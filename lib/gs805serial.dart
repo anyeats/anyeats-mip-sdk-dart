@@ -222,6 +222,21 @@ class GS805Serial {
   /// Defines a custom multi-step recipe for a drink number.
   /// After setting, call [makeDrink] with the same drink number to execute.
   ///
+  /// Set drink recipe time (0x15, Series 3 format)
+  ///
+  /// Sets material duration and water amount for each channel.
+  /// [drink] - Drink number
+  /// [channelTimes] - 8 pairs of (materialDuration, waterAmount) in 0.1s units
+  Future<void> setDrinkRecipeTime(
+    DrinkNumber drink,
+    List<(int material, int water)> channelTimes,
+  ) async {
+    _ensureConnected();
+
+    final command = GS805Protocol.setDrinkRecipeTimeCommand(drink.code, channelTimes);
+    await _manager!.sendCommand(command);
+  }
+
   /// [drink] - Drink number to configure
   /// [steps] - List of recipe steps (max 32)
   Future<void> setDrinkRecipeProcess(
@@ -786,6 +801,13 @@ class GS805Serial {
     return messageStream
         .where((msg) => msg.isActiveReport)
         .map((msg) => MachineEvent.fromCode(msg.getDataByte(0) ?? 0));
+  }
+
+  /// Send a raw CommandMessage and return the response.
+  /// Use for commands not yet wrapped in dedicated methods.
+  Future<ResponseMessage> sendRawCommand(CommandMessage command) async {
+    _ensureConnected();
+    return await _manager!.sendCommand(command);
   }
 
   /// Stream of connection state changes
