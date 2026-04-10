@@ -194,12 +194,7 @@ class MdbCashless {
   Future<void> requestVend({required int price, int itemNumber = 1}) async {
     _ensureConnected();
 
-    if (_state != CashlessState.sessionIdle) {
-      throw StateError(
-        'Cannot request vend in state: ${_state.displayName}. '
-        'Must be in Session Idle state (card detected).',
-      );
-    }
+    // 상태 체크 제거: 일부 카드리더는 Enable 상태에서 바로 Request Vend 가능
 
     _pendingVend = VendRequest(price: price, itemNumber: itemNumber);
 
@@ -284,6 +279,12 @@ class MdbCashless {
     if (!_isConnected || _connection == null) {
       throw StateError('Not connected to MDB-RS232 bridge');
     }
+  }
+
+  /// Send raw HEX data to MDB-RS232 bridge (public)
+  Future<void> sendRawHex(List<int> bytes) async {
+    _ensureConnected();
+    await _sendHex(bytes);
   }
 
   /// Send HEX data to MDB-RS232 bridge

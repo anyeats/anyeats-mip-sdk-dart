@@ -752,6 +752,87 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
     }
   }
 
+  // ─── Drink Status Polling ───
+  bool _drinkPolling = false;
+
+  /// makeDrink 호출 후 상태 변화 폴링 시작 (2초 간격, 최대 3분)
+  Future<void> _startDrinkStatusPolling() async {
+    if (_drinkPolling) return;
+    _drinkPolling = true;
+    _addEventLog('--- STATUS POLL START ---');
+
+    String? prevMachine;
+    String? prevResult;
+    bool? prevWaitRet;
+    bool? prevCupPlaced;
+    int? prevStep;
+    bool? prevSuccess;
+
+    final stopwatch = Stopwatch()..start();
+    while (_drinkPolling && stopwatch.elapsed.inSeconds < 180) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!_isConnected || !_drinkPolling) break;
+
+      try {
+        // getMachineStatus
+        final ms = await _gs805.getMachineStatus();
+        final msStr = '${ms.message}(0x${ms.code.toRadixString(16)})';
+
+        // getDrinkStatus
+        final ds = await _gs805.getDrinkStatus();
+        final resultStr = '${ds.result}';
+        final stepStr = '${ds.currentStep}/${ds.totalSteps}';
+        final progress = '${(ds.progress * 100).toStringAsFixed(0)}%';
+
+        // 변화 감지 — 바뀐 것만 로그
+        final changes = <String>[];
+        if (msStr != prevMachine) {
+          changes.add('Machine:$msStr');
+          prevMachine = msStr;
+        }
+        if (resultStr != prevResult) {
+          changes.add('Result:$resultStr');
+          prevResult = resultStr;
+        }
+        if (ds.currentStep != prevStep) {
+          changes.add('Step:$stepStr($progress)');
+          prevStep = ds.currentStep;
+        }
+        if (ds.isWaitingForRetrieval != prevWaitRet) {
+          changes.add('WaitRetrieval:${ds.isWaitingForRetrieval}');
+          prevWaitRet = ds.isWaitingForRetrieval;
+        }
+        if (ds.isCupPlaced != prevCupPlaced) {
+          changes.add('CupPlaced:${ds.isCupPlaced}');
+          prevCupPlaced = ds.isCupPlaced;
+        }
+        if (ds.isSuccess != prevSuccess) {
+          changes.add('isSuccess:${ds.isSuccess}');
+          prevSuccess = ds.isSuccess;
+        }
+
+        if (changes.isNotEmpty) {
+          _addEventLog('[POLL] ${changes.join(' | ')}');
+        }
+
+        // Ready 상태 복귀 시 폴링 종료
+        if (ms.isReady && (ds.isSuccess || ds.isFailed)) {
+          _addEventLog('--- STATUS POLL END (${stopwatch.elapsed.inSeconds}s) ---');
+          break;
+        }
+      } catch (e) {
+        _addEventLog('[POLL] error: $e');
+      }
+    }
+
+    stopwatch.stop();
+    _drinkPolling = false;
+  }
+
+  void _stopDrinkStatusPolling() {
+    _drinkPolling = false;
+  }
+
   void _addEventLog(String message) {
     setState(() {
       _eventLog.insert(0, '${DateTime.now().toString().substring(11, 19)} $message');
@@ -1163,6 +1244,8 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
               _addEventLog('0x15: $label (${drink.displayName})');
               await _gs805.setDrinkRecipeTime(drink, times);
               await _gs805.makeDrink(drink);
+              _addEventLog('makeDrink OK → polling start');
+              _startDrinkStatusPolling();
             } catch (e) {
               _showSnackBar('Failed: $e', Colors.red);
             }
@@ -1227,6 +1310,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
       _addEventLog('Making ${drink.displayName}...');
       await _gs805.makeDrink(drink);
       _showSnackBar('$chNames 제조 시작', Colors.blue);
+      _startDrinkStatusPolling();
     } catch (e) {
       _showSnackBar('Failed: $e', Colors.red);
     }
@@ -1538,6 +1622,38 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                       onPressed: _mdbConnected ? _mdbCashSale : null,
                       child: const Text('Cash Sale'),
                     ),
+                    ElevatedButton(
+                      onPressed: _mdbConnected ? () async {
+                        try {
+                          _addEventLog('[MDB] 1. Reset (0x10)...');
+                          await _mdbCashless.sendRawHex([0x10]);
+                          _addEventLog('[MDB] Reset sent');
+                        } catch (e) { _showSnackBar('$e', Colors.red); }
+                      } : null,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
+                      child: const Text('1.Reset'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _mdbConnected ? () async {
+                        try {
+                          _addEventLog('[MDB] 2. Config (Setup)...');
+                          await _mdbCashless.setup();
+                          _addEventLog('[MDB] Config sent');
+                        } catch (e) { _showSnackBar('$e', Colors.red); }
+                      } : null,
+                      child: const Text('2.Config'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _mdbConnected ? () async {
+                        try {
+                          _addEventLog('[MDB] 3. Enable...');
+                          await _mdbCashless.enable();
+                          _addEventLog('[MDB] Enable sent');
+                        } catch (e) { _showSnackBar('$e', Colors.red); }
+                      } : null,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green[100]),
+                      child: const Text('3.Enable'),
+                    ),
                   ],
                 ),
               ],
@@ -1595,10 +1711,7 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                   runSpacing: 8,
                   children: [
                     ElevatedButton.icon(
-                      onPressed:
-                          (_mdbConnected && _cashlessState == CashlessState.sessionIdle)
-                              ? _mdbRequestVend
-                              : null,
+                      onPressed: _mdbConnected ? _mdbRequestVend : null,
                       icon: const Icon(Icons.payment, size: 18),
                       label: const Text('Request Vend'),
                       style: ElevatedButton.styleFrom(
@@ -2354,6 +2467,9 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                     _shellPreset('su 0 sh -c "cat /data/local/tmp/strace.log | grep -i aa55 | tail -20"'),
                     _shellPreset('su 0 sh -c "cat /data/local/tmp/strace.log | tail -50"'),
                     _shellPreset('su 0 sh -c "echo AA55020B0C | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
+                    _shellPreset('su 0 sh -c "timeout 15 cat /dev/ttyS9 > /data/local/tmp/ttyS9.bin &"'),
+                    _shellPreset('su 0 xxd /data/local/tmp/ttyS9.bin'),
+                    _shellPreset('su 0 sh -c "timeout 30 cat /dev/ttyS9 > /data/local/tmp/ttyS9.bin &"'),
                     _shellPreset('su 0 sh -c "echo AA55121D01010D010000320032 0000FF00000000A1 | xxd -r -p > /dev/ttyS7 & timeout 1 cat /dev/ttyS7 | xxd"'),
                     _shellPreset('curl -s --connect-timeout 3 http://192.168.0.140:8000/ 2>/dev/null'),
                     _shellPreset('curl http://192.168.0.140:8000/ 2>&1'),

@@ -170,8 +170,8 @@ class StatusCodes {
   static bool isSuccess(int code) => code == success;
 
   /// Check if status code indicates error
-  static bool isError(int code) =>
-      code != success && code != activeReport && code < 0x80;
+  /// 0x00=success, 0x01=busy, 0x02-0x08=error, 0x09-0x7E=status, 0x7F=activeReport
+  static bool isError(int code) => code >= 0x02 && code <= 0x08;
 }
 
 /// Drink number definitions
