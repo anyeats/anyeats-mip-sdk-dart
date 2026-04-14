@@ -295,6 +295,26 @@ extension PaymentPanelBuilder on _CoffeeMachineScreenState {
                     ElevatedButton(
                       onPressed: _mdbConnected ? () async {
                         try {
+                          await _mdbCashless.sessionComplete();
+                          _addEventLog('[MDB] Session Complete sent');
+                        } catch (e) { _showSnackBar('$e', Colors.red); }
+                      } : null,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[100]),
+                      child: const Text('Session Complete'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _mdbConnected ? () async {
+                        try {
+                          await _mdbCashless.cancel();
+                          _addEventLog('[MDB] Cancel sent');
+                        } catch (e) { _showSnackBar('$e', Colors.red); }
+                      } : null,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: _mdbConnected ? () async {
+                        try {
                           _addEventLog('[MDB] 1. Reset (0x10)...');
                           await _mdbCashless.sendRawHex([0x10]);
                           _addEventLog('[MDB] Reset sent');
