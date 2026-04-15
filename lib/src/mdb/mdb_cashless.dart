@@ -164,6 +164,58 @@ class MdbCashless {
     _emitEvent(CashlessEventType.stateChanged);
   }
 
+  /// Initialize card reader using manufacturer's Level 2/3 sequence
+  ///
+  /// Full initialization flow from manufacturer documentation:
+  /// 1. Config Level 2 + Level 3
+  /// 2. Set Max/Min Price
+  /// 3. Expansion Request ID (with VMC identification)
+  /// 4. Expansion Enable
+  /// 5. Reader Enable
+  ///
+  /// This is an alternative to [setup] which uses Level 1 only.
+  Future<void> setupV2({int maxPrice = 0xFFFF, int minPrice = 0x0000}) async {
+    _ensureConnected();
+
+    // 1. Config Level 2: 110002000002
+    await _sendHex([0x11, 0x00, 0x02, 0x00, 0x00, 0x02]);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 2. Config Level 3: 110003000000
+    await _sendHex([0x11, 0x00, 0x03, 0x00, 0x00, 0x00]);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 3. Set max/min price: 1101{MAX_H}{MAX_L}{MIN_H}{MIN_L}
+    await _sendHex([
+      0x11, 0x01,
+      (maxPrice >> 8) & 0xFF, maxPrice & 0xFF,
+      (minPrice >> 8) & 0xFF, minPrice & 0xFF,
+    ]);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 4. Expansion Request ID (VMC manufacturer + serial + model + sw version + feature)
+    // "NEC" + "000000000000" + "   " + "SOLISTA  " + 0x00 + 0x11
+    await _sendHex([
+      0x17, 0x00,
+      0x4E, 0x45, 0x43, // "NEC"
+      0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, // "000000000000"
+      0x20, 0x20, 0x20, // "   "
+      0x53, 0x4F, 0x4C, 0x49, 0x53, 0x54, 0x41, 0x20, 0x20, // "SOLISTA  "
+      0x00, 0x11,
+    ]);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 5. Expansion Enable: 170400000020
+    await _sendHex([0x17, 0x04, 0x00, 0x00, 0x00, 0x20]);
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 6. Reader Enable: 1401
+    await _sendHex([0x14, 0x01]);
+
+    _state = CashlessState.enabled;
+    _emitEvent(CashlessEventType.stateChanged);
+  }
+
   /// Enable card reader (start accepting cards)
   Future<void> enable() async {
     _ensureConnected();

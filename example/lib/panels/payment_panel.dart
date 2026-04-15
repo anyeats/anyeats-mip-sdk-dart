@@ -273,6 +273,17 @@ extension PaymentPanelBuilder on _CoffeeMachineScreenState {
                       child: const Text('Setup'),
                     ),
                     ElevatedButton(
+                      onPressed: _mdbConnected ? () async {
+                        try {
+                          _addEventLog('[MDB] Setup V2 (Level 2/3 + Expansion)...');
+                          await _mdbCashless.setupV2();
+                          _addEventLog('[MDB] Setup V2 complete');
+                        } catch (e) { _showSnackBar('$e', Colors.red); }
+                      } : null,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[100]),
+                      child: const Text('Setup V2'),
+                    ),
+                    ElevatedButton(
                       onPressed: _mdbConnected ? _mdbEnable : null,
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green[100]),
