@@ -550,6 +550,22 @@ class GS805Serial {
     }
   }
 
+  /// Open the pickup door (front door)
+  ///
+  /// Physically opens the front door motor for product retrieval.
+  /// Not to be confused with [unlockDoor] which only releases the electronic lock.
+  Future<void> openPickupDoor() async {
+    await unitFunctionTest(3, 4, 0, 0);
+  }
+
+  /// Close the pickup door (front door)
+  ///
+  /// Physically closes the front door motor after product retrieval.
+  /// Not to be confused with [lockDoor] which only engages the electronic lock.
+  Future<void> closePickupDoor() async {
+    await unitFunctionTest(3, 4, 1, 0);
+  }
+
   /// Lock the electronic door lock
   ///
   /// [lockNumber] - Lock device number (default 0x01)
