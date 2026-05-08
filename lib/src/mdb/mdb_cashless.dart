@@ -290,6 +290,7 @@ class MdbCashless {
 
     _state = CashlessState.enabled;
     _pendingVend = null;
+    _emitEvent(CashlessEventType.sessionCancelled);
     _emitEvent(CashlessEventType.stateChanged);
   }
 
