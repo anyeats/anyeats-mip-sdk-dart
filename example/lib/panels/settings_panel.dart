@@ -15,7 +15,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.monitor_heart, color: Colors.green),
-          title: const Text('Machine Status (0x0B)'),
+          title: const Text('[All] Machine Status (0x0B)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
@@ -30,7 +30,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.error_outline, color: Colors.orange),
-          title: const Text('Error Code (0x0C)'),
+          title: const Text('[All] Error Code (0x0C)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
@@ -45,7 +45,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.info_outline, color: Colors.orange),
-          title: const Text('Error Info (상세)'),
+          title: const Text('[All] Error Info (상세, 0x0C)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
@@ -62,7 +62,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.dashboard, color: Colors.blue),
-          title: const Text('Controller Status (0x1E)'),
+          title: const Text('[3/R] Controller Status (0x1E)'),
           subtitle: const Text('32비트 상세 상태'),
           trailing: ElevatedButton(
             onPressed: () async {
@@ -85,7 +85,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.local_cafe, color: Colors.brown),
-          title: const Text('Drink Status (0x1F)'),
+          title: const Text('[3/R] Drink Status (0x1F)'),
           subtitle: const Text('음료 제작 진행 상태'),
           trailing: ElevatedButton(
             onPressed: () async {
@@ -105,7 +105,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.account_balance_wallet, color: Colors.teal),
-          title: const Text('Balance (0x0F)'),
+          title: const Text('[All] Balance (0x0F)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
@@ -125,7 +125,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           dense: true,
-          title: const Text('Set Hot Temp (65/60)'),
+          title: const Text('[All] Set Hot Temp (65/60, 0x04)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
@@ -139,7 +139,7 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           dense: true,
-          title: const Text('Set Cold Temp (10/5)'),
+          title: const Text('[All] Set Cold Temp (10/5, 0x05)'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {

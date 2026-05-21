@@ -544,12 +544,12 @@ class _CoffeeMachineScreenState extends State<CoffeeMachineScreen> {
                     isScrollable: true,
                     tabs: [
                       if (_isConnected) ...[
-                        const Tab(text: 'Channel'),
-                        const Tab(text: 'Recipe'),
+                        const Tab(text: 'Channel [R]'),
+                        const Tab(text: 'Recipe [R/All]'),
                         const Tab(text: 'Payment'),
-                        const Tab(text: 'Maint.'),
-                        const Tab(text: 'Extended'),
-                        const Tab(text: 'Settings'),
+                        const Tab(text: 'Maint. [All/3R]'),
+                        const Tab(text: 'Extended [3/R]'),
+                        const Tab(text: 'Settings [All/3R]'),
                       ],
                       const Tab(text: 'Debug'),
                       const Tab(text: 'System'),

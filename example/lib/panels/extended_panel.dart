@@ -190,7 +190,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
-            'Status Queries',
+            '[3/R] Status Queries',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -200,8 +200,8 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.developer_board),
-          title: const Text('Get Controller Status'),
-          subtitle: const Text('Query main controller status (R series)'),
+          title: const Text('[3/R] Get Controller Status (0x1E)'),
+          subtitle: const Text('Query main controller status'),
           trailing: ElevatedButton(
             onPressed: _getControllerStatus,
             child: const Text('Query'),
@@ -210,7 +210,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.local_cafe),
-          title: const Text('Get Drink Status'),
+          title: const Text('[3/R] Get Drink Status (0x1F)'),
           subtitle: const Text('Query drink preparation progress'),
           trailing: ElevatedButton(
             onPressed: _getDrinkStatus,
@@ -220,7 +220,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.warning_amber),
-          title: const Text('Get Object Exception'),
+          title: const Text('[3/R] Get Object Exception (0x22)'),
           subtitle: const Text('Query pump exception info'),
           trailing: ElevatedButton(
             onPressed: _getObjectException,
@@ -233,7 +233,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
-            'Door Lock Control',
+            '[3/R] Door Lock Control (0x1B)',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -243,7 +243,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.lock),
-          title: const Text('Lock Door'),
+          title: const Text('[3/R] Lock Door'),
           subtitle: const Text('Lock the electronic door lock'),
           trailing: ElevatedButton(
             onPressed: _lockDoor,
@@ -256,7 +256,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.lock_open),
-          title: const Text('Unlock Door'),
+          title: const Text('[3/R] Unlock Door'),
           subtitle: const Text('Unlock the electronic door lock'),
           trailing: ElevatedButton(
             onPressed: _unlockDoor,
@@ -269,7 +269,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.lock_clock),
-          title: const Text('Get Lock Status'),
+          title: const Text('[3/R] Get Lock Status'),
           subtitle: const Text('Query current lock state'),
           trailing: ElevatedButton(
             onPressed: _getLockStatus,
@@ -282,7 +282,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
-            'Machine Control',
+            'Machine Control',  // 항목별 배지 표시
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -292,7 +292,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.science),
-          title: const Text('Unit Function Test'),
+          title: const Text('[3/R] Unit Function Test (0x1A)'),
           subtitle: const Text('Run dispensing test (cmd=1)'),
           trailing: ElevatedButton(
             onPressed: _unitFunctionTest,
@@ -302,7 +302,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.water_drop),
-          title: const Text('Water Refill'),
+          title: const Text('[3/R] Water Refill (0x1C)'),
           subtitle: const Text('Trigger water tank refill'),
           trailing: ElevatedButton(
             onPressed: _waterRefill,
@@ -315,7 +315,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.coffee_maker),
-          title: const Text('Cup Delivery'),
+          title: const Text('[3/R] Cup Delivery (0x24)'),
           subtitle: const Text('Deliver cup to holder (30s timeout)'),
           trailing: ElevatedButton(
             onPressed: _cupDelivery,
@@ -328,7 +328,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
-            'Force Stop',
+            '[3/R] Force Stop (0x23)',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -338,7 +338,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.stop_circle, color: Colors.red),
-          title: const Text('Force Stop Drink Process'),
+          title: const Text('[3/R] Force Stop Drink Process'),
           subtitle: const Text('Immediately stop current drink making'),
           trailing: ElevatedButton(
             onPressed: _forceStopDrinkProcess,
@@ -351,7 +351,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.stop_circle_outlined, color: Colors.red),
-          title: const Text('Force Stop Cup Delivery'),
+          title: const Text('[3/R] Force Stop Cup Delivery'),
           subtitle: const Text('Immediately stop cup delivery'),
           trailing: ElevatedButton(
             onPressed: _forceStopCupDelivery,
@@ -367,7 +367,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Text(
-            'Recipe Commands',
+            '[R] Recipe Commands (R Series 전용)',
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -377,7 +377,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.receipt_long),
-          title: const Text('Set Drink Recipe'),
+          title: const Text('[R] Set Drink Recipe (0x1D)'),
           subtitle: const Text('Set Hot Drink 1 recipe (cup + instant channel)'),
           trailing: ElevatedButton(
             onPressed: _setDrinkRecipeProcess,
@@ -390,7 +390,7 @@ extension ExtendedPanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.play_circle),
-          title: const Text('Execute Channel'),
+          title: const Text('[R] Execute Channel (0x25)'),
           subtitle: const Text('Ch0, hot, mat=1000, water=2000, speed=50'),
           trailing: ElevatedButton(
             onPressed: _executeChannel,

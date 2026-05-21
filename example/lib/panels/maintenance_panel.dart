@@ -170,7 +170,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.door_front_door),
-          title: const Text('Front Door (0x1A testCmd=3)'),
+          title: const Text('[3/R] Front Door (0x1A testCmd=3)'),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -205,7 +205,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.coffee_maker),
-          title: const Text('Test Cup Drop'),
+          title: const Text('[All] Test Cup Drop (0x08)'),
           subtitle: const Text('Test the cup dispensing mechanism'),
           trailing: ElevatedButton(
             onPressed: _testCupDrop,
@@ -215,7 +215,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.cleaning_services),
-          title: const Text('Clean All Pipes'),
+          title: const Text('[All] Clean All Pipes (0x0A)'),
           subtitle: const Text('Clean all instant coffee pipes'),
           trailing: ElevatedButton(
             onPressed: _cleanAllPipes,
@@ -228,7 +228,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.cleaning_services_outlined),
-          title: const Text('Clean Specific Pipe'),
+          title: const Text('[All] Clean Specific Pipe (0x12)'),
           subtitle: const Text('Clean pipe #1'),
           trailing: ElevatedButton(
             onPressed: () => _cleanSpecificPipe(1),
@@ -241,7 +241,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.build),
-          title: const Text('Auto Inspection'),
+          title: const Text('[All] Auto Inspection (0x09)'),
           subtitle: const Text('Run automatic system inspection'),
           trailing: ElevatedButton(
             onPressed: () async {
@@ -271,7 +271,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.error_outline),
-          title: const Text('Get Error Code'),
+          title: const Text('[All] Get Error Code (0x0C)'),
           subtitle: const Text('Query current machine error code'),
           trailing: ElevatedButton(
             onPressed: _getErrorCode,
@@ -281,7 +281,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.info_outline),
-          title: const Text('Get Error Info'),
+          title: const Text('[All] Get Error Info (0x0C)'),
           subtitle: const Text('Detailed error with recovery actions'),
           trailing: ElevatedButton(
             onPressed: _getErrorInfo,
@@ -291,7 +291,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.money_off),
-          title: const Text('Return Change'),
+          title: const Text('[All] Return Change (0x10)'),
           subtitle: const Text('Trigger coin changer to return change'),
           trailing: ElevatedButton(
             onPressed: _returnChange,
@@ -314,7 +314,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.thermostat, color: Colors.red),
-          title: const Text('Set Hot Temperature'),
+          title: const Text('[All] Set Hot Temperature (0x04)'),
           subtitle: const Text('Upper: 65, Lower: 60'),
           trailing: ElevatedButton(
             onPressed: _setHotTemperature,
@@ -327,7 +327,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.thermostat, color: Colors.blue),
-          title: const Text('Set Cold Temperature'),
+          title: const Text('[All] Set Cold Temperature (0x05)'),
           subtitle: const Text('Upper: 10, Lower: 5'),
           trailing: ElevatedButton(
             onPressed: _setColdTemperature,
@@ -340,7 +340,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.coffee),
-          title: const Text('Cup Drop Mode'),
+          title: const Text('[All] Cup Drop Mode (0x07)'),
           subtitle: const Text('Set automatic or manual cup drop'),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
@@ -373,7 +373,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         ),
         ListTile(
           leading: const Icon(Icons.attach_money),
-          title: const Text('Set Drink Price'),
+          title: const Text('[All] Set Drink Price (0x0E)'),
           subtitle: const Text('Hot Drink 1 = 10 tokens'),
           trailing: ElevatedButton(
             onPressed: _setDrinkPrice,
@@ -383,7 +383,7 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
         const Divider(),
         ListTile(
           leading: const Icon(Icons.bar_chart),
-          title: const Text('Get Sales Count'),
+          title: const Text('[All] Get Sales Count (0x06)'),
           subtitle: const Text('Query Hot Drink 1 sales statistics'),
           trailing: ElevatedButton(
             onPressed: _getSalesCount,
