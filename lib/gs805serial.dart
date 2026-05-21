@@ -182,11 +182,11 @@ class GS805Serial {
   ///
   /// [drink] - Drink number to make
   /// [useLocalBalance] - If true, use machine's local balance
-  /// [timeout] - Command timeout (default: 100ms)
+  /// [timeout] - Command timeout (default: 2s, Series 3 응답 지연 대응)
   Future<void> makeDrink(
     DrinkNumber drink, {
     bool useLocalBalance = false,
-    Duration timeout = const Duration(milliseconds: 100),
+    Duration timeout = const Duration(seconds: 2),
   }) async {
     _ensureConnected();
 
@@ -395,11 +395,13 @@ class GS805Serial {
   /// Get machine status
   ///
   /// Returns [MachineStatus] indicating the current machine state
-  Future<MachineStatus> getMachineStatus() async {
+  Future<MachineStatus> getMachineStatus({Duration? timeout}) async {
     _ensureConnected();
 
     final command = GS805Protocol.getMachineStatusCommand();
-    final response = await _manager!.sendCommand(command);
+    final response = timeout != null
+        ? await _manager!.sendCommand(command, timeout: timeout)
+        : await _manager!.sendCommand(command);
 
     final code = response.statusCode ?? 0;
     return MachineStatus.fromCode(code);
@@ -408,11 +410,13 @@ class GS805Serial {
   /// Get error code
   ///
   /// Returns [MachineError] with detailed error information
-  Future<MachineError> getErrorCode() async {
+  Future<MachineError> getErrorCode({Duration? timeout}) async {
     _ensureConnected();
 
     final command = GS805Protocol.getErrorCodeCommand();
-    final response = await _manager!.sendCommand(command);
+    final response = timeout != null
+        ? await _manager!.sendCommand(command, timeout: timeout)
+        : await _manager!.sendCommand(command);
 
     // Error code is in the data field (after status)
     final errorCode = response.getDataByte(0) ?? 0;
@@ -421,8 +425,8 @@ class GS805Serial {
   }
 
   /// Get detailed error information with recovery suggestions
-  Future<ErrorInfo> getErrorInfo() async {
-    final error = await getErrorCode();
+  Future<ErrorInfo> getErrorInfo({Duration? timeout}) async {
+    final error = await getErrorCode(timeout: timeout);
     return ErrorInfo.fromError(error);
   }
 
@@ -662,11 +666,13 @@ class GS805Serial {
   /// Query main controller status (R series)
   ///
   /// Returns [ControllerStatus] with detailed machine state flags.
-  Future<ControllerStatus> getControllerStatus() async {
+  Future<ControllerStatus> getControllerStatus({Duration? timeout}) async {
     _ensureConnected();
 
     final command = GS805Protocol.getControllerStatusCommand();
-    final response = await _manager!.sendCommand(command);
+    final response = timeout != null
+        ? await _manager!.sendCommand(command, timeout: timeout)
+        : await _manager!.sendCommand(command);
 
     // Response DATA: ST_INFO(4bytes) + optional DrinkNo(1)
     // 0x1E response has NO STA byte
@@ -685,11 +691,13 @@ class GS805Serial {
   /// Query drink preparation status (R series)
   ///
   /// Returns [DrinkPreparationStatus] with current drink making progress.
-  Future<DrinkPreparationStatus> getDrinkStatus() async {
+  Future<DrinkPreparationStatus> getDrinkStatus({Duration? timeout}) async {
     _ensureConnected();
 
     final command = GS805Protocol.getDrinkStatusCommand();
-    final response = await _manager!.sendCommand(command);
+    final response = timeout != null
+        ? await _manager!.sendCommand(command, timeout: timeout)
+        : await _manager!.sendCommand(command);
 
     // Response DATA: DK_INFO(4bytes)
     // 0x1F response has NO STA byte

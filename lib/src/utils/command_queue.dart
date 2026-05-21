@@ -45,7 +45,7 @@ class QueuedCommand {
     required this.command,
     this.maxRetries = 3,
     this.currentAttempt = 0,
-    this.timeout = const Duration(milliseconds: 100),
+    this.timeout = const Duration(seconds: 2),
   })  : completer = Completer<ResponseMessage>(),
         addedAt = DateTime.now();
 
@@ -184,8 +184,8 @@ class CommandQueue {
   /// Default maximum retries
   int defaultMaxRetries = 3;
 
-  /// Default command timeout
-  Duration defaultTimeout = const Duration(milliseconds: 100);
+  /// Default command timeout (Series 3 응답 지연 대응)
+  Duration defaultTimeout = const Duration(seconds: 2);
 
   /// Create command queue
   CommandQueue({

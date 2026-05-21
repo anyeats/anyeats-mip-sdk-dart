@@ -463,7 +463,7 @@ dart doc
 - **Baud Rate**: 9600
 - **Format**: 8N1 (8 data bits, no parity, 1 stop bit)
 - **Byte Order**: Big Endian
-- **Timeout**: 100ms (with retry mechanism)
+- **Timeout**: 2s default (Series 3 응답 지연 대응, with retry mechanism). 사양상 응답 latency는 100ms 이내지만, GS805(Series 3, 단일 스레드) 실측 시 첫 응답이 지연되는 경우가 있어 기본값을 2s로 설정.
 
 ## Architecture
 
