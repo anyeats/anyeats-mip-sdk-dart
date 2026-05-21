@@ -134,7 +134,7 @@ class SerialManager {
   /// [retries] - Number of retry attempts
   Future<ResponseMessage> sendCommand(
     CommandMessage command, {
-    Duration timeout = const Duration(seconds: 2),
+    Duration timeout = const Duration(seconds: 3),
     int retries = 2,
   }) async {
     if (!isConnected) {

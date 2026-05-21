@@ -182,11 +182,11 @@ class GS805Serial {
   ///
   /// [drink] - Drink number to make
   /// [useLocalBalance] - If true, use machine's local balance
-  /// [timeout] - Command timeout (default: 2s, Series 3 응답 지연 대응)
+  /// [timeout] - Command timeout (default: 3s, Series 3 응답 지연 대응)
   Future<void> makeDrink(
     DrinkNumber drink, {
     bool useLocalBalance = false,
-    Duration timeout = const Duration(seconds: 2),
+    Duration timeout = const Duration(seconds: 3),
   }) async {
     _ensureConnected();
 
