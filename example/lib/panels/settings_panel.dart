@@ -85,8 +85,8 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
         ListTile(
           dense: true,
           leading: const Icon(Icons.local_cafe, color: Colors.brown),
-          title: const Text('[3/R] Drink Status (0x1F)'),
-          subtitle: const Text('음료 제작 진행 상태'),
+          title: const Text('[R] Drink Status (0x1F)'),
+          subtitle: const Text('음료 제작 진행 상태 — GS805 펌웨어 미응답, R Series 전용'),
           trailing: ElevatedButton(
             onPressed: () async {
               try {
