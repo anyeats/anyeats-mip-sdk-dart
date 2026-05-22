@@ -27,6 +27,8 @@ class SerialManager {
       StreamController<bool>.broadcast();
   final StreamController<ReconnectEvent> _reconnectEventController =
       StreamController<ReconnectEvent>.broadcast();
+  final StreamController<Uint8List> _rawBytesController =
+      StreamController<Uint8List>.broadcast();
 
   /// Create a serial manager
   ///
@@ -87,6 +89,7 @@ class SerialManager {
     _parser = MessageParser();
     _inputSubscription = _connection.inputStream.listen(
       (bytes) {
+        _rawBytesController.add(bytes);
         _parser?.addBytes(bytes);
       },
       onError: (error) {
@@ -199,6 +202,12 @@ class SerialManager {
   Stream<ReconnectEvent> get reconnectEventStream =>
       _reconnectEventController.stream;
 
+  /// Raw incoming bytes stream (진단용)
+  ///
+  /// MessageParser와 동일한 inputStream을 받아 그대로 노출. 체크섬 실패로
+  /// 폐기되거나 firstWhere 매칭에 실패하는 응답을 hex로 직접 확인 가능.
+  Stream<Uint8List> get rawBytesStream => _rawBytesController.stream;
+
   /// Check if currently connected
   bool get isConnected => _connection.isConnected;
 
@@ -241,6 +250,7 @@ class SerialManager {
     await _messageController.close();
     await _connectionStateController.close();
     await _reconnectEventController.close();
+    await _rawBytesController.close();
     await _connection.dispose();
   }
 }

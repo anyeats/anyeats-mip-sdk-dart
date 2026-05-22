@@ -150,7 +150,113 @@ extension SettingsPanelBuilder on _CoffeeMachineScreenState {
             child: const Text('Set'),
           ),
         ),
+
+        // --- Raw Diagnostic ---
+        const Divider(height: 24, thickness: 2),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 8),
+          child: Text('Raw Diagnostic',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+        ),
+        const Padding(
+          padding: EdgeInsets.only(bottom: 4, left: 8, right: 8),
+          child: Text(
+            'SDK 정상 파싱과 무관하게 1.5초간 raw bytes를 캡처해 hex 출력.\n'
+            'GS801 / GS805 비교로 응답 포맷 차이 확인.',
+            style: TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+        ),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.bug_report, color: Colors.deepOrange),
+          title: const Text('Diag 0x0B (MachineStatus)'),
+          subtitle: const Text('명령: AA 55 02 0B 12'),
+          trailing: ElevatedButton(
+            onPressed: () => _runRawDiagnostic(
+              label: '0x0B MachineStatus',
+              command: GS805Protocol.getMachineStatusCommand(),
+            ),
+            child: const Text('Capture'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.bug_report, color: Colors.deepOrange),
+          title: const Text('Diag 0x1F (DrinkStatus)'),
+          subtitle: const Text('명령: AA 55 03 1F 20 47'),
+          trailing: ElevatedButton(
+            onPressed: () => _runRawDiagnostic(
+              label: '0x1F DrinkStatus',
+              command: GS805Protocol.getDrinkStatusCommand(),
+            ),
+            child: const Text('Capture'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.bug_report, color: Colors.green),
+          title: const Text('Diag 0x1E (ControllerStatus, 정상 비교용)'),
+          subtitle: const Text('명령: AA 55 03 1E 1F 45'),
+          trailing: ElevatedButton(
+            onPressed: () => _runRawDiagnostic(
+              label: '0x1E ControllerStatus',
+              command: GS805Protocol.getControllerStatusCommand(),
+            ),
+            child: const Text('Capture'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          dense: true,
+          leading: const Icon(Icons.playlist_play, color: Colors.deepOrange),
+          title: const Text('Diag ALL (0x0B → 0x1F → 0x1E)'),
+          subtitle: const Text('세 명령 순차 캡처'),
+          trailing: ElevatedButton(
+            onPressed: () async {
+              await _runRawDiagnostic(
+                label: '0x0B MachineStatus',
+                command: GS805Protocol.getMachineStatusCommand(),
+              );
+              await _runRawDiagnostic(
+                label: '0x1F DrinkStatus',
+                command: GS805Protocol.getDrinkStatusCommand(),
+              );
+              await _runRawDiagnostic(
+                label: '0x1E ControllerStatus',
+                command: GS805Protocol.getControllerStatusCommand(),
+              );
+              _addEventLog('=== Diag ALL 완료 ===');
+            },
+            child: const Text('Run All'),
+          ),
+        ),
       ],
     );
   }
+
+  Future<void> _runRawDiagnostic({
+    required String label,
+    required CommandMessage command,
+  }) async {
+    try {
+      _addEventLog('--- $label 캡처 시작 ---');
+      final tx = command.toBytes();
+      _addEventLog('  TX: ${_hex(tx)}');
+      final stopwatch = Stopwatch()..start();
+      final rx = await _gs805.diagnoseRaw(command);
+      stopwatch.stop();
+      if (rx.isEmpty) {
+        _addEventLog('  RX: (no bytes, ${stopwatch.elapsedMilliseconds}ms)');
+      } else {
+        _addEventLog('  RX (${rx.length}B, ${stopwatch.elapsedMilliseconds}ms): ${_hex(rx)}');
+      }
+    } catch (e) {
+      _addEventLog('  ERROR: $e');
+    }
+  }
+
+  String _hex(List<int> bytes) =>
+      bytes.map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase()).join(' ');
 }

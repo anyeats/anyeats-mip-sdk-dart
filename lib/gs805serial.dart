@@ -14,6 +14,7 @@ export 'src/utils/command_queue.dart';
 export 'src/mdb/mdb.dart';
 
 import 'dart:async';
+import 'dart:typed_data';
 import 'src/serial/usb_serial_connection.dart';
 import 'src/serial/serial_manager.dart';
 import 'src/serial/serial_connection.dart';
@@ -841,6 +842,32 @@ class GS805Serial {
   /// Stream of reconnection events
   Stream<ReconnectEvent> get reconnectEventStream =>
       _manager?.reconnectEventStream ?? const Stream.empty();
+
+  /// Raw incoming bytes stream (진단용).
+  /// MessageParser와 동일한 inputStream을 받아 노출.
+  Stream<Uint8List> get rawBytesStream =>
+      _manager?.rawBytesStream ?? const Stream.empty();
+
+  /// 진단: command를 보내고 [window] 동안 raw bytes를 수집해 반환.
+  ///
+  /// SDK 정상 파싱과 무관하게, 디바이스가 실제로 보낸 모든 바이트를 캡처해
+  /// hex로 분석할 수 있게 함. 체크섬 실패 / 매칭 실패로 폐기되는 응답을
+  /// 직접 확인하는 용도.
+  Future<Uint8List> diagnoseRaw(
+    CommandMessage command, {
+    Duration window = const Duration(milliseconds: 1500),
+  }) async {
+    _ensureConnected();
+    final buffer = BytesBuilder();
+    final sub = rawBytesStream.listen(buffer.add);
+    try {
+      await _manager!.write(command.toBytes());
+      await Future.delayed(window);
+    } finally {
+      await sub.cancel();
+    }
+    return buffer.toBytes();
+  }
 
   // ========== Utility Methods ==========
 
