@@ -2,7 +2,7 @@
 
 A Flutter plugin for communicating with GS805 coffee machines via serial communication (RS232).
 
-[![pub package](https://img.shields.io/badge/pub-v0.0.1-blue)](https://pub.dev/packages/gs805serial)
+[![version](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/anyeats/anyeats-mip-sdk-dart)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ## Features
@@ -17,8 +17,8 @@ A Flutter plugin for communicating with GS805 coffee machines via serial communi
 
 ## Supported Platforms
 
-- ✅ Android
-- ⚠️ iOS (limited - USB Serial restrictions)
+- ✅ Android only (serial port access — USB host or embedded `/dev/ttyS*` UART)
+- ❌ iOS / Windows / Web — not supported
 
 ## Requirements
 
@@ -32,7 +32,10 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  gs805serial: ^0.0.1
+  gs805serial:
+    git:
+      url: https://github.com/anyeats/anyeats-mip-sdk-dart.git
+      ref: 1.0.0   # or `main`
 ```
 
 Then run:
@@ -125,6 +128,10 @@ await gs805.connect(devices.first);
 
 // Or connect by VID/PID
 await gs805.connectByVidPid(0x1234, 0x5678);
+
+// Embedded devices use a hardware UART port instead of USB host.
+// final gs805 = GS805Serial(connection: UartSerialConnection());
+// → scans /dev/ttyS*, /dev/ttyHS* ... (real device: /dev/ttyS7, 9600 8N1)
 
 // Check connection status
 if (gs805.isConnected) {
@@ -416,6 +423,7 @@ For detailed reconnection guide, see [RECONNECT_GUIDE.md](RECONNECT_GUIDE.md).
 - `makeDrink(DrinkNumber drink, {bool useLocalBalance})` → `Future<void>`
 - `setDrinkRecipeProcess(DrinkNumber drink, List<RecipeStep> steps)` → `Future<void>` *(R series)*
 - `executeChannel({required int channel, ...})` → `Future<void>` *(R series)*
+- `setDrinkRecipeTime(DrinkNumber drink, List<(int, int)> channelTimes)` → `Future<void>` *(0x15, Series 2/3/R — per-channel (material, water) in 0.1s units)*
 - `setHotTemperature(int upperLimit, int lowerLimit)` → `Future<void>`
 - `setColdTemperature(int upperLimit, int lowerLimit)` → `Future<void>`
 - `setCupDropMode(CupDropModeEnum mode)` → `Future<void>`
@@ -442,7 +450,7 @@ For detailed reconnection guide, see [RECONNECT_GUIDE.md](RECONNECT_GUIDE.md).
 - `getLockStatus({int lockNumber})` → `Future<LockStatus>`
 - `waterRefill()` → `Future<void>`
 - `getControllerStatus()` → `Future<ControllerStatus>`
-- `getDrinkStatus()` → `Future<DrinkPreparationStatus>`
+- `getDrinkStatus()` → `Future<DrinkPreparationStatus>` *(⚠️ GS801 only — GS805 firmware does not respond to 0x1F and will time out; use `getMachineStatus()` + `getControllerStatus()` on GS805)*
 - `getObjectException(ObjectType objectType)` → `Future<ObjectExceptionInfo>`
 - `forceStopDrinkProcess()` → `Future<void>`
 - `forceStopCupDelivery()` → `Future<void>`
@@ -451,6 +459,7 @@ For detailed reconnection guide, see [RECONNECT_GUIDE.md](RECONNECT_GUIDE.md).
 ### Event Streams
 
 - `messageStream` → `Stream<ResponseMessage>`
+- `rawBytesStream` → `Stream<Uint8List>` *(raw received bytes — for diagnostics/frame capture)*
 - `eventStream` → `Stream<MachineEvent>`
 - `connectionStateStream` → `Stream<bool>`
 - `reconnectEventStream` → `Stream<ReconnectEvent>`
