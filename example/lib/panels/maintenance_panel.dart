@@ -40,6 +40,41 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
     }
   }
 
+  /// Dispense water only (no material/powder).
+  ///
+  /// Uses setDrinkRecipeTime (0x15) + makeDrink instead of executeChannel (0x25),
+  /// because executeChannel (R series) is not honored by the actual firmware.
+  /// The recipe sets material=0 for every channel and water>0 on [channel],
+  /// so only water flows. Hot vs Cold is chosen by [drink] (hotDrink1/coldDrink1).
+  ///
+  /// [drink] - Hot or Cold drink slot used for the dispense
+  /// [channel] - 1-based water channel (default 1)
+  /// [waterTime] - Water output time in 0.1s units (default 100 = 10s)
+  Future<void> _dispenseWaterOnly(
+    DrinkNumber drink, {
+    int channel = 1,
+    int waterTime = 100,
+  }) async {
+    if (!_isConnected) {
+      _showSnackBar('Not connected', Colors.orange);
+      return;
+    }
+    try {
+      // 8 channels (ch1~8), (material, water) in 0.1s units. material=0 → water only.
+      final times = List<(int, int)>.generate(
+        8,
+        (i) => i == (channel - 1) ? (0, waterTime) : (0, 0),
+      );
+      _addEventLog(
+          'Water only (0x15): ${drink.displayName} ch$channel water=$waterTime');
+      await _gs805.setDrinkRecipeTime(drink, times);
+      await _gs805.makeDrink(drink);
+      _showSnackBar('${drink.isHot ? "Hot" : "Cold"} water dispensing...', Colors.blue);
+    } catch (e) {
+      _showSnackBar('Water dispense failed: $e', Colors.red);
+    }
+  }
+
   Future<void> _getErrorCode() async {
     if (!_isConnected) {
       _showSnackBar('Not connected', Colors.orange);
@@ -236,6 +271,28 @@ extension MaintenancePanelBuilder on _CoffeeMachineScreenState {
               backgroundColor: Colors.blue[200],
             ),
             child: const Text('Clean #1'),
+          ),
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.water_drop, color: Colors.lightBlue),
+          title: const Text('[All] Water Only (0x15 recipe → make)'),
+          subtitle: const Text('ch1 water only, no powder (10s)'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
+                onPressed: () => _dispenseWaterOnly(DrinkNumber.hotDrink1),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[100]),
+                child: const Text('Hot'),
+              ),
+              const SizedBox(width: 4),
+              ElevatedButton(
+                onPressed: () => _dispenseWaterOnly(DrinkNumber.coldDrink1),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[100]),
+                child: const Text('Cold'),
+              ),
+            ],
           ),
         ),
         const Divider(),

@@ -297,6 +297,17 @@ await gs805.cleanAllPipes();
 // Clean specific pipe
 await gs805.cleanSpecificPipe(1); // Pipe 1
 
+// Dispense water only — no powder.
+// Use setDrinkRecipeTime (0x15) + makeDrink. (executeChannel 0x25 is not
+// honored by the firmware.) Set material=0 for every channel and water>0
+// on the target channel. Hot vs Cold is chosen by the drink number.
+final times = <(int, int)>[
+  (0, 100), // ch1: material 0, water 10s (0.1s units) → water only
+  (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), (0, 0), // ch2~8 off
+];
+await gs805.setDrinkRecipeTime(DrinkNumber.hotDrink1, times); // or coldDrink1
+await gs805.makeDrink(DrinkNumber.hotDrink1);
+
 // Run auto inspection
 await gs805.autoInspection();
 
